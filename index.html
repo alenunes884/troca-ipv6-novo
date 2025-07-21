@@ -47,7 +47,7 @@
 </head>
 <body class="text-gray-800">
 
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8">
         <!-- Header Section -->
         <header class="text-center mb-8">
             <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Dashboard de Troca de Roteadores</h1>
@@ -450,8 +450,18 @@
 
         // --- Firebase Setup ---
         let db;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        
+        // Your Firebase project configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyA6-prcZy59xIXewk9wiu_zc-SDU0OM66o",
+          authDomain: "troca-ipv6.firebaseapp.com",
+          projectId: "troca-ipv6",
+          storageBucket: "troca-ipv6.firebasestorage.app",
+          messagingSenderId: "145692842884",
+          appId: "1:145692842884:web:46d7c53554134a60781bd1",
+          measurementId: "G-WC5XLWQTVP"
+        };
+        
         const clientDataStore = {}; // In-memory store for Firestore data
 
         // --- App Logic ---
@@ -525,6 +535,12 @@
                                                         <div class="text-sm font-medium text-gray-900">${cliente.nome}</div>
                                                         <div class="text-sm text-gray-500">Login: <span class="font-mono">${cliente.login || 'N/A'}</span></div>
                                                         <div class="text-sm text-gray-500">MAC: <span class="font-mono">${cliente.mac || 'N/A'}</span></div>
+                                                        <div class="text-sm text-gray-500 mt-1 flex items-center">
+                                                            <span class="truncate">Endereço: ${cliente.endereco}</span>
+                                                            <button onclick="window.app.copyAddress('${cliente.endereco}', this)" class="ml-2 text-gray-400 hover:text-indigo-600 flex-shrink-0">
+                                                                <i class="fas fa-copy"></i>
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                     <td class="px-4 py-4 whitespace-nowrap">
                                                         <select class="p-2 border border-gray-300 rounded-md" onchange="window.app.saveSwapStatus('${cliente.id}', this.value)">
@@ -553,13 +569,31 @@
         }
 
         async function saveSwapStatus(clientId, status) {
-            const docPath = `artifacts/${appId}/public/data/router_swaps/${clientId}`;
+            const docPath = `router_swaps/${clientId}`;
             await db.doc(docPath).set({ swap: status }, { merge: true });
         }
 
         async function saveObservation(clientId, text) {
-            const docPath = `artifacts/${appId}/public/data/router_swaps/${clientId}`;
+            const docPath = `router_swaps/${clientId}`;
             await db.doc(docPath).set({ obs: text }, { merge: true });
+        }
+
+        function copyAddress(text, buttonElement) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                const originalIcon = buttonElement.innerHTML;
+                buttonElement.innerHTML = `<i class="fas fa-check text-green-500"></i>`;
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalIcon;
+                }, 2000);
+            } catch (err) {
+                console.error('Falha ao copiar endereço: ', err);
+            }
+            document.body.removeChild(textarea);
         }
 
         function populateFilter() {
@@ -592,14 +626,23 @@
 
             // Sign in
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await auth.signInWithCustomToken(__initial_auth_token);
-                } else {
-                    await auth.signInAnonymously();
-                }
+                await auth.signInAnonymously();
             } catch (error) {
                 console.error("Firebase Authentication Error:", error);
-                return; // Stop if auth fails
+                const userMessage = `
+                    <div class="text-left p-8 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2">Erro de Autenticação com Firebase</h3>
+                        <p class="mb-1">Não foi possível conectar. Por favor, verifique os seguintes pontos:</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>O objeto <strong>firebaseConfig</strong> no código HTML está correto?</li>
+                            <li>No seu projeto Firebase, a <strong>Autenticação Anónima</strong> está ativada? (Vá para Firebase Console > Authentication > Sign-in method).</li>
+                            <li>As <strong>regras do Firestore</strong> permitem leitura e escrita? (Vá para Firebase Console > Firestore Database > Rules).</li>
+                        </ul>
+                        <p class="mt-4 text-xs font-mono bg-red-200 p-2 rounded">Detalhe do erro: ${error.message}</p>
+                    </div>
+                `;
+                document.getElementById('app-container').innerHTML = userMessage;
+                return; 
             }
 
             // Initial UI setup
@@ -607,17 +650,20 @@
             renderDashboard();
             setupEventListeners();
             
-            // Expose save functions to global scope for inline event handlers
-            window.app = { saveSwapStatus, saveObservation };
+            // Expose functions to global scope for inline event handlers
+            window.app = { saveSwapStatus, saveObservation, copyAddress };
 
             // Listen for real-time data updates
-            const collectionPath = `artifacts/${appId}/public/data/router_swaps`;
+            const collectionPath = `router_swaps`;
             db.collection(collectionPath).onSnapshot((snapshot) => {
                 snapshot.docs.forEach(doc => {
                     clientDataStore[doc.id] = doc.data();
                 });
                 // Re-render with the current filter settings
                 renderClients(searchInput.value, bairroFilter.value);
+            }, (error) => {
+                console.error("Erro ao ler do Firestore: ", error);
+                document.getElementById('client-list').innerHTML = `<div class="text-center p-8 text-red-500">Não foi possível carregar os dados. Verifique as regras do Firestore.</div>`;
             });
         }
 
