@@ -96,12 +96,12 @@
 
     </div>
 
-    <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- Firebase SDKs (Compatibility version for broader browser support) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
+    <script>
         // --- Static Data ---
         const bairrosData = [
             {
@@ -553,13 +553,13 @@
         }
 
         async function saveSwapStatus(clientId, status) {
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'router_swaps', clientId);
-            await setDoc(docRef, { swap: status }, { merge: true });
+            const docPath = `artifacts/${appId}/public/data/router_swaps/${clientId}`;
+            await db.doc(docPath).set({ swap: status }, { merge: true });
         }
 
         async function saveObservation(clientId, text) {
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'router_swaps', clientId);
-            await setDoc(docRef, { obs: text }, { merge: true });
+            const docPath = `artifacts/${appId}/public/data/router_swaps/${clientId}`;
+            await db.doc(docPath).set({ obs: text }, { merge: true });
         }
 
         function populateFilter() {
@@ -586,16 +586,16 @@
 
         async function initialize() {
             // Initialize Firebase
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            const auth = getAuth(app);
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            const auth = firebase.auth();
 
             // Sign in
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+                    await auth.signInWithCustomToken(__initial_auth_token);
                 } else {
-                    await signInAnonymously(auth);
+                    await auth.signInAnonymously();
                 }
             } catch (error) {
                 console.error("Firebase Authentication Error:", error);
@@ -611,8 +611,8 @@
             window.app = { saveSwapStatus, saveObservation };
 
             // Listen for real-time data updates
-            const dataCollection = collection(db, 'artifacts', appId, 'public', 'data', 'router_swaps');
-            onSnapshot(dataCollection, (snapshot) => {
+            const collectionPath = `artifacts/${appId}/public/data/router_swaps`;
+            db.collection(collectionPath).onSnapshot((snapshot) => {
                 snapshot.docs.forEach(doc => {
                     clientDataStore[doc.id] = doc.data();
                 });
