@@ -111,11 +111,23 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Firebase Configuration (AUTOMATIC) ---
-        // This line correctly uses the environment-provided config. The hardcoded version was removed.
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        // --- Firebase Configuration ---
+        // For standalone deployment (like on Vercel), provide your Firebase config here.
+        // IMPORTANT: For production, use environment variables instead of hardcoding keys.
+        const hardcodedConfig = {
+            apiKey: "AIzaSyBLtW7-aJe6LWyk5iIdhr6YM1KzlJSlCOI",
+            authDomain: "ipv6-12a88.firebaseapp.com",
+            projectId: "ipv6-12a88",
+            storageBucket: "ipv6-12a88.appspot.com", // Corrected storage bucket domain
+            messagingSenderId: "865496039162",
+            appId: "1:865496039162:web:7e94d4a39a3c3e6b94d343"
+        };
+
+        // Use environment-injected config if available, otherwise fall back to the hardcoded one.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : hardcodedConfig;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
 
         // --- Firebase Initialization ---
         let app, auth, db, userId;
