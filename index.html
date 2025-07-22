@@ -26,22 +26,25 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #64748b;
         }
-        .accordion-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
-        }
-        .accordion-button .fa-chevron-down {
-            transition: transform 0.3s ease;
-        }
-        .accordion-button.open .fa-chevron-down {
-            transform: rotate(180deg);
-        }
         .table-responsive {
             display: block;
             width: 100%;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+        }
+        th {
+            cursor: pointer;
+            user-select: none;
+        }
+        th .sort-icon {
+            opacity: 0.5;
+            transition: opacity 0.2s ease;
+        }
+        th:hover .sort-icon {
+            opacity: 1;
+        }
+        th.sorted .sort-icon {
+            opacity: 1;
         }
     </style>
 </head>
@@ -82,9 +85,34 @@
             </div>
         </div>
 
-        <!-- Client Accordion List Section -->
-        <main id="client-list" class="space-y-2">
-            <!-- Client data will be injected here by JavaScript -->
+        <!-- Client Table Section -->
+        <main id="client-table-container" class="bg-white rounded-lg shadow-md overflow-hidden">
+             <div class="table-responsive">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" onclick="window.app.sortClients('nome')">
+                                Cliente <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                             <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" onclick="window.app.sortClients('bairro')">
+                                Bairro <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Agendamento Troca
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Observações
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" onclick="window.app.sortClients('status')">
+                                Status <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="client-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Client data will be injected here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
         </main>
         
         <!-- No results message -->
@@ -442,7 +470,7 @@
         }).filter(bairro => bairro.clientes.length > 0);
 
         // --- DOM Elements ---
-        const clientList = document.getElementById('client-list');
+        const clientTableBody = document.getElementById('client-table-body');
         const searchInput = document.getElementById('search');
         const bairroFilter = document.getElementById('bairro-filter');
         const noResultsDiv = document.getElementById('no-results');
@@ -450,7 +478,8 @@
 
         // --- App State ---
         const clientDataStore = {}; // In-memory store for Firestore data
-        const openAccordions = new Set(); // To track open accordions
+        let allClients = []; // A flat array of all clients
+        let sortConfig = { key: 'nome', direction: 'ascending' };
 
         // --- Firebase Setup ---
         let db;
@@ -477,15 +506,12 @@
         }
         
         function renderDashboard() {
-            let totalClientes = 0;
+            let totalClientes = allClients.length;
             const statusCounts = { Ativo: 0, Bloqueado: 0, Financeiro: 0 };
-            bairrosData.forEach(b => {
-                b.clientes.forEach(c => {
-                    totalClientes++;
-                    if (c.status === 'Ativo') statusCounts.Ativo++;
-                    else if (c.status.includes('Bloqueio')) statusCounts.Bloqueado++;
-                    else if (c.status === 'Financeiro em atraso') statusCounts.Financeiro++;
-                });
+            allClients.forEach(c => {
+                if (c.status === 'Ativo') statusCounts.Ativo++;
+                else if (c.status.includes('Bloqueio')) statusCounts.Bloqueado++;
+                else if (c.status === 'Financeiro em atraso') statusCounts.Financeiro++;
             });
             dashboard.innerHTML = `
                 <div class="bg-white p-4 rounded-lg shadow flex items-center"><div class="bg-blue-100 text-blue-600 rounded-full p-3 mr-4"><i class="fas fa-users fa-lg"></i></div><div><p class="text-sm text-gray-500">Total de Clientes</p><p class="text-2xl font-bold">${totalClientes}</p></div></div>
@@ -494,86 +520,104 @@
                 <div class="bg-white p-4 rounded-lg shadow flex items-center"><div class="bg-yellow-100 text-yellow-600 rounded-full p-3 mr-4"><i class="fas fa-dollar-sign fa-lg"></i></div><div><p class="text-sm text-gray-500">Atraso Financeiro</p><p class="text-2xl font-bold">${statusCounts.Financeiro}</p></div></div>
             `;
         }
-
-        function renderClients(filter = '', bairro = 'all') {
-            clientList.innerHTML = '';
-            let resultsFound = false;
-
-            bairrosData.forEach(bairroData => {
-                if (bairro !== 'all' && bairroData.bairro !== bairro) return;
-
-                const filteredClientes = bairroData.clientes.filter(cliente => cliente.nome.toLowerCase().includes(filter.toLowerCase()));
-
-                if (filteredClientes.length > 0) {
-                    resultsFound = true;
-                    const accordionItem = document.createElement('div');
-                    accordionItem.className = 'bg-white rounded-lg shadow-md overflow-hidden';
-                    const clientCount = filteredClientes.length;
-                    const isOpen = openAccordions.has(bairroData.bairro);
-
-                    accordionItem.innerHTML = `
-                        <button data-bairro="${bairroData.bairro}" class="accordion-button w-full flex justify-between items-center p-4 text-left font-semibold text-lg text-gray-700 hover:bg-gray-50 ${isOpen ? 'open' : ''}">
-                            <span>${bairroData.bairro} <span class="text-sm font-normal text-gray-500">(${clientCount} cliente${clientCount > 1 ? 's' : ''})</span></span>
-                            <i class="fas fa-chevron-down text-gray-500"></i>
-                        </button>
-                        <div class="accordion-content">
-                            <div class="table-responsive p-2">
-                                <table class="min-w-full divide-y divide-gray-200">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agendamento Troca</th>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Observações</th>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white divide-y divide-gray-200">
-                                        ${filteredClientes.map(cliente => {
-                                            const clientState = clientDataStore[cliente.id] || {};
-                                            const savedSwap = clientState.swap || 'Não Agendado';
-                                            const savedObs = clientState.obs || '';
-                                            return `
-                                                <tr id="row_${cliente.id}">
-                                                    <td class="px-4 py-4 whitespace-nowrap">
-                                                        <div class="text-sm font-medium text-gray-900">${cliente.nome}</div>
-                                                        <div class="text-sm text-gray-500">Login: <span class="font-mono">${cliente.login || 'N/A'}</span></div>
-                                                        <div class="text-sm text-gray-500">MAC: <span class="font-mono">${cliente.mac || 'N/A'}</span></div>
-                                                        <div class="text-sm text-gray-500 mt-1 flex items-center">
-                                                            <span class="truncate">Endereço: ${cliente.endereco}</span>
-                                                            <button onclick="window.app.copyAddress('${cliente.endereco}', this)" class="ml-2 text-gray-400 hover:text-indigo-600 flex-shrink-0">
-                                                                <i class="fas fa-copy"></i>
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                    <td class="px-4 py-4 whitespace-nowrap">
-                                                        <select class="p-2 border border-gray-300 rounded-md" onchange="window.app.saveSwapStatus('${cliente.id}', this.value)">
-                                                            <option value="Não Agendado" ${savedSwap === 'Não Agendado' ? 'selected' : ''}>Não Agendado</option>
-                                                            <option value="Agendado" ${savedSwap === 'Agendado' ? 'selected' : ''}>Agendado</option>
-                                                        </select>
-                                                    </td>
-                                                    <td class="px-4 py-4">
-                                                        <textarea class="w-full p-2 border border-gray-300 rounded-md" rows="2" oninput="window.app.saveObservation('${cliente.id}', this.value)">${savedObs}</textarea>
-                                                    </td>
-                                                    <td class="px-4 py-4 whitespace-nowrap">
-                                                        <span class="text-xs font-medium px-2 py-0.5 rounded-full ${getStatusBadgeClass(cliente.status)}">${cliente.status}</span>
-                                                    </td>
-                                                </tr>
-                                            `;
-                                        }).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    `;
-                    clientList.appendChild(accordionItem);
-                    
-                    if (isOpen) {
-                        const content = accordionItem.querySelector('.accordion-content');
-                        content.style.maxHeight = content.scrollHeight + "px";
-                    }
-                }
+        
+        function updateSortIcons() {
+            document.querySelectorAll('th[onclick]').forEach(th => {
+                th.classList.remove('sorted');
+                const icon = th.querySelector('.sort-icon');
+                icon.className = 'fas fa-sort sort-icon';
             });
-            noResultsDiv.classList.toggle('hidden', resultsFound);
+
+            const activeTh = document.querySelector(`th[onclick="window.app.sortClients('${sortConfig.key}')"]`);
+            if (activeTh) {
+                activeTh.classList.add('sorted');
+                const icon = activeTh.querySelector('.sort-icon');
+                icon.className = sortConfig.direction === 'ascending' ? 'fas fa-sort-up sort-icon' : 'fas fa-sort-down sort-icon';
+            }
+        }
+
+        function renderClients() {
+            const filterText = searchInput.value.toLowerCase();
+            const bairro = bairroFilter.value;
+            
+            let filteredClients = [...allClients];
+
+            // Apply filters
+            if (filterText) {
+                filteredClients = filteredClients.filter(c => c.nome.toLowerCase().includes(filterText));
+            }
+            if (bairro !== 'all') {
+                filteredClients = filteredClients.filter(c => c.bairro === bairro);
+            }
+
+            // Apply sorting
+            filteredClients.sort((a, b) => {
+                if (a[sortConfig.key] < b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (a[sortConfig.key] > b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+
+            clientTableBody.innerHTML = ''; // Clear existing table
+            
+            if (filteredClients.length === 0) {
+                noResultsDiv.classList.remove('hidden');
+                document.getElementById('client-table-container').classList.add('hidden');
+            } else {
+                noResultsDiv.classList.add('hidden');
+                document.getElementById('client-table-container').classList.remove('hidden');
+            }
+
+            filteredClients.forEach(cliente => {
+                const clientState = clientDataStore[cliente.id] || {};
+                const savedSwap = clientState.swap || 'Não Agendado';
+                const savedObs = clientState.obs || '';
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                row.innerHTML = `
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${cliente.nome}</div>
+                        <div class="text-sm text-gray-500">Login: <span class="font-mono">${cliente.login || 'N/A'}</span></div>
+                        <div class="text-sm text-gray-500">MAC: <span class="font-mono">${cliente.mac || 'N/A'}</span></div>
+                        <div class="text-sm text-gray-500 mt-1 flex items-center">
+                            <span class="truncate" title="${cliente.endereco}">End: ${cliente.endereco}</span>
+                            <button onclick="window.app.copyAddress('${cliente.endereco}', this)" class="ml-2 text-gray-400 hover:text-indigo-600 flex-shrink-0">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">${cliente.bairro}</td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <select class="p-2 border border-gray-300 rounded-md" onchange="window.app.saveSwapStatus('${cliente.id}', this.value)">
+                            <option value="Não Agendado" ${savedSwap === 'Não Agendado' ? 'selected' : ''}>Não Agendado</option>
+                            <option value="Agendado" ${savedSwap === 'Agendado' ? 'selected' : ''}>Agendado</option>
+                        </select>
+                    </td>
+                    <td class="px-4 py-4">
+                        <textarea class="w-full p-2 border border-gray-300 rounded-md" rows="2" oninput="window.app.saveObservation('${cliente.id}', this.value)">${savedObs}</textarea>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <span class="text-xs font-medium px-2 py-0.5 rounded-full ${getStatusBadgeClass(cliente.status)}">${cliente.status}</span>
+                    </td>
+                `;
+                clientTableBody.appendChild(row);
+            });
+            
+            updateSortIcons();
+        }
+
+        function sortClients(key) {
+            if (sortConfig.key === key) {
+                sortConfig.direction = sortConfig.direction === 'ascending' ? 'descending' : 'ascending';
+            } else {
+                sortConfig.key = key;
+                sortConfig.direction = 'ascending';
+            }
+            renderClients();
         }
 
         async function saveSwapStatus(clientId, status) {
@@ -612,30 +656,19 @@
                 bairroFilter.appendChild(option);
             });
         }
+        
+        function flattenClientData() {
+            allClients = [];
+            bairrosData.forEach(b => {
+                b.clientes.forEach(c => {
+                    allClients.push({ ...c, bairro: b.bairro });
+                });
+            });
+        }
 
         function setupEventListeners() {
-            clientList.addEventListener('click', function(event) {
-                const button = event.target.closest('.accordion-button');
-                if (button) {
-                    const bairroName = button.dataset.bairro;
-                    button.classList.toggle('open');
-                    
-                    if (button.classList.contains('open')) {
-                        openAccordions.add(bairroName);
-                    } else {
-                        openAccordions.delete(bairroName);
-                    }
-
-                    const content = button.nextElementSibling;
-                    if (content.style.maxHeight) {
-                        content.style.maxHeight = null;
-                    } else {
-                        content.style.maxHeight = content.scrollHeight + "px";
-                    }
-                }
-            });
-            searchInput.addEventListener('input', () => renderClients(searchInput.value, bairroFilter.value));
-            bairroFilter.addEventListener('change', () => renderClients(searchInput.value, bairroFilter.value));
+            searchInput.addEventListener('input', renderClients);
+            bairroFilter.addEventListener('change', renderClients);
         }
 
         async function initialize() {
@@ -664,6 +697,8 @@
                 document.getElementById('app-container').innerHTML = userMessage;
                 return; 
             }
+            
+            flattenClientData();
 
             // Initial UI setup
             populateFilter();
@@ -671,7 +706,7 @@
             setupEventListeners();
             
             // Expose functions to global scope for inline event handlers
-            window.app = { saveSwapStatus, saveObservation, copyAddress };
+            window.app = { saveSwapStatus, saveObservation, copyAddress, sortClients };
 
             // Listen for real-time data updates
             const collectionPath = `router_swaps`;
@@ -679,11 +714,23 @@
                 snapshot.docs.forEach(doc => {
                     clientDataStore[doc.id] = doc.data();
                 });
-                // Re-render with the current filter settings
-                renderClients(searchInput.value, bairroFilter.value);
+                // Re-render with the current filter and sort settings
+                renderClients();
             }, (error) => {
                 console.error("Erro ao ler do Firestore: ", error);
-                document.getElementById('client-list').innerHTML = `<div class="text-center p-8 text-red-500">Não foi possível carregar os dados. Verifique as regras do Firestore.</div>`;
+                 const firestoreErrorMessage = `
+                    <div class="text-left p-8 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2">Erro de Conexão com o Firestore</h3>
+                        <p class="mb-1">Não foi possível carregar os dados. Isto geralmente acontece por um dos seguintes motivos:</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li><strong>Problema de Internet ou Firewall:</strong> Verifique a sua conexão à internet. Se estiver numa rede corporativa, pode haver um firewall a bloquear o acesso.</li>
+                            <li><strong>Regras do Firestore:</strong> As regras de segurança da sua base de dados podem não permitir a leitura. Verifique se as regras no seu painel do Firebase (Firestore Database > Rules) permitem o acesso. Para testes, pode usar <code>allow read, write: if true;</code>.</li>
+                             <li><strong>Base de Dados Não Criada:</strong> Verifique se a base de dados Firestore foi criada no seu projeto Firebase.</li>
+                        </ul>
+                        <p class="mt-4 text-xs font-mono bg-red-200 p-2 rounded">Detalhe do erro: ${error.message}</p>
+                    </div>
+                `;
+                document.getElementById('client-table-container').innerHTML = firestoreErrorMessage;
             });
         }
 
