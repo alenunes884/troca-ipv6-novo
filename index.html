@@ -118,7 +118,7 @@
             apiKey: "AIzaSyBLtW7-aJe6LWyk5iIdhr6YM1KzlJSlCOI",
             authDomain: "ipv6-12a88.firebaseapp.com",
             projectId: "ipv6-12a88",
-            storageBucket: "ipv6-12a88.appspot.com", // Corrected storage bucket domain
+            storageBucket: "ipv6-12a88.appspot.com",
             messagingSenderId: "865496039162",
             appId: "1:865496039162:web:7e94d4a39a3c3e6b94d343"
         };
@@ -137,7 +137,13 @@
             db = getFirestore(app);
         } catch (e) {
             console.error("Error initializing Firebase:", e);
-            document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500">Erro ao conectar com o servidor. Tente recarregar a página.</p>';
+            const errorElement = document.getElementById('loading-overlay');
+            errorElement.innerHTML = `
+                <div class="text-center p-4">
+                    <p class="text-red-500 font-semibold">Erro ao conectar com o servidor Firebase.</p>
+                    <p class="text-gray-600 mt-2">Isto pode acontecer se as credenciais da Firebase (apiKey, projectId, etc.) no código estiverem incorretas ou se o projeto Firebase não estiver configurado para aceitar pedidos deste domínio.</p>
+                    <p class="text-gray-500 mt-2 text-sm">Por favor, verifique a consola do navegador (F12) para mais detalhes técnicos sobre o erro.</p>
+                </div>`;
         }
 
         // --- App State ---
