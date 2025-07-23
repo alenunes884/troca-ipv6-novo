@@ -7,50 +7,51 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- PDF Export Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            background-color: #f8fafc; /* Lighter gray */
         }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #e2e8f0; }
-        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-        .table-responsive { display: block; width: 100%; overflow-x: auto; }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 4px solid #3498db;
-            width: 40px;
-            height: 40px;
-            animation: spin 2s linear infinite;
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0;
         }
-        .row-saving {
-            outline: 2px solid #3498db;
-            outline-offset: -2px;
-            transition: outline 0.1s ease-in-out;
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+        }
+        .accordion-button .fa-chevron-down {
+            transition: transform 0.3s ease;
+        }
+        .accordion-button.open .fa-chevron-down {
+            transform: rotate(180deg);
+        }
+        .table-responsive {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
     </style>
 </head>
 <body class="text-gray-800">
 
-    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-75 flex flex-col justify-center items-center z-50">
-        <div class="loader"></div>
-        <p class="mt-4 text-gray-600">A autenticar e carregar dados...</p>
-    </div>
-
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <!-- Header Section -->
         <header class="text-center mb-8">
             <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Dashboard de Troca de Roteadores</h1>
-            <p id="current-date" class="text-md text-gray-500 mt-2">Data de Emissão: </p>
+            <p class="text-md text-gray-500 mt-2">Data de Emissão: 16 de julho de 2025</p>
         </header>
 
         <!-- Dashboard Stats -->
@@ -60,12 +61,14 @@
 
         <!-- Filters Section -->
         <div class="bg-white p-4 rounded-lg shadow-md mb-8 sticky top-4 z-10">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Search by Name -->
                 <div>
                     <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Buscar por Nome</label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3"><i class="fas fa-search text-gray-400"></i></span>
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </span>
                         <input type="text" id="search" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Digite o nome do cliente...">
                     </div>
                 </div>
@@ -76,25 +79,12 @@
                         <option value="all">Todos os Bairros</option>
                     </select>
                 </div>
-                <!-- User ID Display -->
-                <div class="bg-gray-100 p-2 rounded-md text-center">
-                     <p class="text-xs text-gray-500">Seu ID de Usuário (partilhe para colaborar):</p>
-                     <p id="user-id-display" class="text-sm font-mono text-gray-800 break-all"></p>
-                </div>
-                <!-- Export Buttons -->
-                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Exportar Dados Filtrados</label>
-                    <div class="flex space-x-2">
-                        <button id="export-excel-btn" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 flex items-center justify-center transition-colors"><i class="fas fa-file-excel mr-2"></i>Excel</button>
-                        <button id="export-pdf-btn" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center justify-center transition-colors"><i class="fas fa-file-pdf mr-2"></i>PDF</button>
-                    </div>
-                </div>
             </div>
         </div>
 
-        <!-- Client Table Section -->
-        <main id="client-list-container">
-            <!-- Client table will be injected here -->
+        <!-- Client Accordion List Section -->
+        <main id="client-list" class="space-y-2">
+            <!-- Client data will be injected here by JavaScript -->
         </main>
         
         <!-- No results message -->
@@ -103,129 +93,357 @@
             <h2 class="text-2xl font-semibold text-gray-700">Nenhum resultado encontrado</h2>
             <p class="text-gray-500">Tente ajustar seus filtros de busca.</p>
         </div>
+
     </div>
 
-    <script type="module">
-        // Import Firebase services
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script>
+        // Data extracted and enriched from the report
+        const bairrosData = [
+            {
+                bairro: "Cidade Morena",
+                clientes: [
+                    { id: "9879", nome: "JB SANTOS PEÇAS E SERVIÇOS LTDA", status: "Ativo", endereco: "RUA SALMORAO, 733", mac: "44:3B:32:5F:03:35", login: "joaosantos24441" },
+                    { id: "9416", nome: "ELIANE BARBOSA", status: "Ativo", endereco: "TRAVESSA MANOEL JOSE DE TOLEDO, 637", mac: "44:3B:32:5B:BE:7B", login: "elianebarbosa43531@mor" },
+                    { id: "8608", nome: "GUSTAVO DOS SANTOS SOUZA", status: "Ativo", endereco: "RUA  LUIZ BATISTA PEREIRA DE ALMEIDA, 83", mac: "44:3B:32:5F:09:13", login: "gustavosouza9131@mor" },
+                    { id: "8076", nome: "RICARDO PINHEIRO DE LIMA", status: "Ativo", endereco: "RUA  VILLAS DE PALOMA , 52", mac: "44:3B:32:5F:03:5D", login: "ricardolima39881@mor" },
+                    { id: "7462", nome: "APARECIDO PEREIRA DA SILVA", status: "Ativo", endereco: "RUA  VILLAS DE PALOMA , 52, AP703", mac: "44:3B:32:6E:F2:61", login: "aparecidosilva6981@mor" },
+                    { id: "7389", nome: "LETICIA LUIZA PRAZERES", status: "Bloqueio Manual", endereco: "RUA  VILLAS DE PALOMA , 52", mac: "44:3B:32:5F:08:ED", login: "leticiaprazeres37261" },
+                    { id: "3324", nome: "MIRIANE RIGONE", status: "Ativo", endereco: "RUA  NEFERSON CLAIR DE MORAES, 308, CS110", mac: "44:3B:32:4A:E0:83", login: "mirianerigone" },
+                ]
+            },
+            {
+                bairro: "Conjunto Aero Rancho",
+                clientes: [
+                    { id: "13909", nome: "LUIZ ANTONIO CORREA DOS SANTOS", status: "Ativo", endereco: "AVENIDA EZEQUIEL FERREIRA LIMA, 1321, SOBRADO", mac: "44:3B:32:86:D6:8B", login: "luizantonio@fibra" },
+                    { id: "11711", nome: "ROSALINA ARECO", status: "Ativo", endereco: "RUA VALDIVINO BASTOS DE JESUS, 137", mac: "44:3B:32:47:24:67", login: "rosalinaareco24301@aer" },
+                    { id: "11664", nome: "MARIA APARECIDA VIEIRA PINTO", status: "Ativo", endereco: "TRAVESSA RICKY NELSON, 26", mac: "44:3B:32:5F:0A:31", login: "mariapinto24061@aer" },
+                    { id: "10871", nome: "JURANDIRA MARIA TEIXEIRA", status: "Ativo", endereco: "TRAVESSA DICK FARNEY, 09", mac: "44:3B:32:4A:E0:93", login: "jurandirteixeira" },
+                    { id: "10809", nome: "ANA PAULA DA SILVA DE SOUZA", status: "Ativo", endereco: "AVENIDA VEREADOR THYRSON DE ALMEIDA, 4155, BLOCO 9 AP 933", mac: "44:3B:32:5A:63:90", login: "anasouza14031" },
+                    { id: "10324", nome: "CLAYTON CRISTIANO RIBEIRO GONSALVES", status: "Ativo", endereco: "RUA MARIA DAS DORES SOARES, 37", mac: "44:3B:32:5A:65:F2", login: "claytongonsalves" },
+                    { id: "10065", nome: "NILSON DA SILVA", status: "Ativo", endereco: "AVENIDA VEREADOR THYRSON DE ALMEIDA, 4155", mac: "44:3B:32:89:74:33", login: "nilsonsilva8191-desativado" },
+                    { id: "2948", nome: "IVO DA PAIXAO NETO", status: "Ativo", endereco: "RUA ISRAELANDIA, 218", mac: "44:3B:32:5F:07:B7", login: "ivoneto" },
+                ]
+            },
+            {
+                bairro: "DJ do córrego",
+                clientes: [
+                    { id: "7912", nome: "ELKER PRATES ROMEIRO", status: "Ativo", endereco: "Rua José da Costa Féliz, 0, QD07LT08", mac: "44:3B:32:5C:C3:0B", login: "elkerromeiro16921@mor" },
+                ]
+            },
+            {
+                bairro: "Guanandi II",
+                clientes: [
+                    { id: "14077", nome: "NAZARÉ DA SILVA MELO", status: "Ativo", endereco: "RUA ARIQUEMES, 91, CASA", mac: "44:3B:32:71:5E:E0", login: "nazare" },
+                    { id: "14074", nome: "LINDALVA D ORNELAS", status: "Ativo", endereco: "RUA COCAL, 449, CASA", mac: "44:3B:32:71:5C:A8", login: "lindalva@fibra" },
+                    { id: "14062", nome: "DENER MENDES LOPES", status: "Ativo", endereco: "RUA FLOR DE MAIO, 83", mac: "44:3B:32:5D:32:70", login: "denermendes@fibra" },
+                    { id: "14030", nome: "FABRICIO RODRIGUES DE SOUZA", status: "Ativo", endereco: "RUA GUARUVA, 136", mac: "44:3B:32:6C:2A:C7", login: "fabriciorodrigues@fibra" },
+                    { id: "13958", nome: "VALTER DA SILVA BASTOS", status: "Ativo", endereco: "AVENIDA PRESIDENTE TANCREDO NEVES, 258", mac: "44:3B:32:69:F0:5D", login: "valterdasilva@fibra" },
+                    { id: "13936", nome: "KATHERINE DUTRA FRAGOSO GARCIA", status: "Ativo", endereco: "AV EZEQUIEL FERREIRA LIMA, 1841, SALÃO", mac: "44:3B:32:69:F4:85", login: "katherinedutra@fibra" },
+                    { id: "13923", nome: "EZEQUIEL TRINDADE DE JESUS", status: "Bloqueio Automático", endereco: "RUA COCAL, 77", mac: "44:3B:32:B0:1F:C8", login: "ezequieltrindade@fibra" },
+                    { id: "13650", nome: "DEBORA SOUTO GODINHO", status: "Ativo", endereco: "RUA CABEDELO, 1183", mac: "44:3B:32:34:FB:87", login: "deborasouto@fibra" },
+                    { id: "13580", nome: "ANTONIO SERGIO MARIANO DA SILVA", status: "Ativo", endereco: "RUA CABEDELO, 804", mac: "44:3B:32:B0:1D:68", login: "antoniosergio@fibra" },
+                    { id: "11258", nome: "MICHELLI PAULINA FERREIRA", status: "Bloqueio Automático", endereco: "RUA IGARASSU, 355", mac: "44:3B:32:6E:F1:D3", login: "michelliferreira14791@aer" },
+                    { id: "11178", nome: "RAMONA FERREIRA DE LIMA", status: "Ativo", endereco: "RUA CURUPI, 158", mac: "44:3B:32:5F:02:39", login: "ramomalima20061" },
+                    { id: "10368", nome: "ELENIR DOS SANTOS PIELL", status: "Bloqueio Manual", endereco: "RUA COCAL, 129", mac: "44:3B:32:5E:F8:FD", login: "elenirpiell" },
+                ]
+            },
+            {
+                bairro: "Iracy Coelho III",
+                clientes: [
+                    { id: "11521", nome: "GLAUCE PULQUERIO NOGUEIRA", status: "Ativo", endereco: "RUA INDAIAL, 205", mac: "44:3B:32:59:3E:30", login: "glaucenogueira23061@aer" },
+                ]
+            },
+            {
+                bairro: "Jardim Aero Rancho",
+                clientes: [
+                    { id: "14089", nome: "CLEUZA MARIA GONÇALVES", status: "Ativo", endereco: "RUA CARMEM MIRANDA, 284", mac: "44:3B:32:B0:1E:50", login: "cleuza@fibra" },
+                    { id: "14036", nome: "MARCIA MARQUES PEREIRA", status: "Ativo", endereco: "RUA GRUTA DO MAQUINÉ, 235", mac: "44:3B:32:69:F1:35", login: "marciaazus@fibra" },
+                    { id: "14026", nome: "IVERSON OROSCO LEITE", status: "Ativo", endereco: "RUA COIMBRA, 42", mac: "44:3B:32:4D:0A:8D", login: "iverson@fibra" },
+                    { id: "14025", nome: "PEDRO HENRIQUE RIBEIRO AIRES", status: "Ativo", endereco: "RUA BUENO, 43, CASA", mac: "44:3B:32:71:5C:80", login: "pedroaires@fibra" },
+                    { id: "14023", nome: "VANILDA GONÇALVES GOMES", status: "Ativo", endereco: "RUA NOVA FRIBURGO, 93", mac: "44:3B:32:69:D2:5D", login: "vanilda@fibra" },
+                    { id: "13992", nome: "IRAILDA MARIA DE OLIVEIRA SOUZA", status: "Ativo", endereco: "RUA GRUTA DO MAQUINÉ, 94, FRENTE", mac: "44:3B:32:90:96:DC", login: "irailda@fibra" },
+                    { id: "13976", nome: "WILLIAM AGUSTINHO DA SILVA", status: "Ativo", endereco: "RUA CARMEM MIRANDA, 43, CASA 2", mac: "44:3B:32:5D:4B:18", login: "williamsilva@fibra" },
+                    { id: "13635", nome: "IVONETE GONÇALVES", status: "Ativo", endereco: "RUA NOVA FRIBURGO, 210, CASA", mac: "44:3B:32:92:02:E6", login: "ivonete@fibra" },
+                    { id: "13626", nome: "FRANCISCO XAVIER BENITEZ", status: "Financeiro em atraso", endereco: "RUA TAUMATURGO, 2016", mac: "44:3B:32:B0:1E:40", login: "franciscoxavier@fibra" },
+                    { id: "11868", nome: "GUILBERT TITO DA SILVA LOPES", status: "Ativo", endereco: "RUA GRUTA DO MAQUINE, 451", mac: "44:3B:32:5A:35:BA", login: "guilbertlopes5721@aer" },
+                    { id: "11656", nome: "DEISE RIBEIRO DE FREITAS AYRES", status: "Ativo", endereco: "RUA GALEAO, 1617", mac: "44:3B:32:5F:03:8F", login: "deiseayres15641@aer" },
+                    { id: "11619", nome: "ISABELA CRISTINA DE SOUZA PINHEIRO", status: "Ativo", endereco: "RUA LIRIO DOS CAMPOS, 442", mac: "44:3B:32:5A:35:D2", login: "isabelapinheiro14041@aer" },
+                    { id: "11544", nome: "EDNIZ FERREIRA DE ARAUJO", status: "Ativo", endereco: "RUA LAURA VICUNA, 831", mac: "44:3B:32:87:03:8E", login: "ednizaraujo23231@aer" },
+                    { id: "11506", nome: "RENATO PEREIRA ESQUER", status: "Bloqueio Automático", endereco: "RUA BABACU, 215", mac: "44:3B:32:87:04:D2", login: "renatoesquer751@aer" },
+                    { id: "11489", nome: "JANE SALVADOR", status: "Ativo", endereco: "RUA CONGONHA DOS CAMPOS, 138", mac: "44:3B:32:47:21:F9", login: "janesalvador2471@aer" },
+                    { id: "11449", nome: "ELKER PRATES ROMEIRO", status: "Ativo", endereco: "RUA GALEAO, 308", mac: "44:3B:32:5C:C2:FD", login: "elkerromeiro22451@aer" },
+                    { id: "11224", nome: "MARIA BASTOS LIMA", status: "Ativo", endereco: "RUA FILIPINAS, 228", mac: "44:3B:32:4E:53:49", login: "marialima12481@aer" },
+                    { id: "10864", nome: "MARIA DE LOURDES DA CONCEIÇÃO", status: "Ativo", endereco: "RUA GRUTA DO MAQUINE, 84", mac: "44:3B:32:5C:C2:41", login: "mariaconceicao" },
+                    { id: "10788", nome: "MAYARA LETICIA MAGALHAES CEZARIO", status: "Ativo", endereco: "RUA PRIMULA, 454", mac: "44:3B:32:5A:63:B0", login: "mayaracezario" },
+                    { id: "10667", nome: "VANDA PAULINO DOS SANTOS", status: "Ativo", endereco: "RUA DAMIANOPOLIS, 308", mac: "44:3B:32:6E:F3:97", login: "vandasantos" },
+                    { id: "10513", nome: "ENIR ALVES DA SILVA", status: "Ativo", endereco: "RUA BERTA LUCIA, 818", mac: "44:3B:32:5C:C2:43", login: "enirsilva" },
+                    { id: "10491", nome: "GRAZIEL DE SOUZA DOS SANTOS", status: "Ativo", endereco: "RUA MAJORIE, 34", mac: "44:3B:32:89:81:D1", login: "grazielsantos" },
+                    { id: "10445", nome: "RENATO AYALA ARAUJO", status: "Ativo", endereco: "RUA CLEVELANDIA, 38", mac: "44:3B:32:47:25:19", login: "renatoaraujo" },
+                    { id: "10434", nome: "RODRIGO SOLIDADE DA SILVA", status: "Ativo", endereco: "RUA IEMANJA, 115", mac: "44:3B:32:5F:02:47", login: "rodrigosilva" },
+                    { id: "10417", nome: "CASSIA COLMAN DA SILVA", status: "Ativo", endereco: "AVENIDA RACHEL DE QUEIROZ, 1468", mac: "44:3B:32:5F:03:41", login: "cassiasilva" },
+                    { id: "10388", nome: "ANDERSON DE OLIVEIRA SOUZA", status: "Ativo", endereco: "RUA BERTA LUCIA, 424", mac: "44:3B:32:5C:C3:01", login: "andersonsouza" },
+                    { id: "10365", nome: "JAQUELINE PESSOA DA SILVA UMBELINO", status: "Ativo", endereco: "AVENIDA PRESIDENTE TANCREDO NEVES, 920", mac: "44:3B:32:5F:03:3F", login: "jaquelineumbelino" },
+                    { id: "10364", nome: "MIGUEL DA SILVA BRITO JUNIOR", status: "Ativo", endereco: "RUA GRUTA DO MAQUINE, 1025", mac: "44:3B:32:47:21:F7", login: "migueljunior" },
+                    { id: "10294", nome: "ALINE DOS SANTOS IBANHES", status: "Ativo", endereco: "RUA BUENO, 60", mac: "44:3B:32:59:41:10", login: "alineibanhes" },
+                    { id: "10139", nome: "ELISANGELA DE FATIMA SIQUEIRA DOS S", status: "Ativo", endereco: "RUA TABAJARA, 773", mac: "44:3B:32:5F:02:4B", login: "elisangelasantos" },
+                ]
+            },
+            {
+                bairro: "Jardim Centenario",
+                clientes: [
+                    { id: "11658", nome: "SILVIO FERREIRA DE ALMEIDA", status: "Ativo", endereco: "RUA SANTA QUITERIA, 753", mac: "44:3B:32:6E:F2:87", login: "silvioalmeida15541@aer" },
+                ]
+            },
+            {
+                bairro: "Jardim Das Hortencia",
+                clientes: [
+                    { id: "10895", nome: "VANIA DA SILVA AQUINO", status: "Financeiro em atraso", endereco: "RUA TAUMATURGO, 382", mac: "44:3B:32:59:40:38", login: "vaniaaquino" },
+                ]
+            },
+            {
+                bairro: "Jardim das Hortênsias",
+                clientes: [
+                    { id: "13964", nome: "VANDILMA DA SILVA VIEIRA", status: "Ativo", endereco: "RUA TRITÔNEA, 110, CASA", mac: "44:3B:32:4D:0A:A5", login: "vandilma@fibra" },
+                    { id: "10510", nome: "THALIA DE ALENCAR BATISTA DE SOUZA", status: "Ativo", endereco: "RUA SALVIA, 23", mac: "44:3B:32:57:B2:DB", login: "thaliasouza" },
+                    { id: "10293", nome: "JULIANA DENGUEZ FERREIRA", status: "Ativo", endereco: "RUA SALVIA, 105", mac: "44:3B:32:57:B5:91", login: "julianaferreira" },
+                ]
+            },
+            {
+                bairro: "Jardim do Córrego",
+                clientes: [
+                    { id: "8608", nome: "GUSTAVO DOS SANTOS SOUZA", status: "Ativo", endereco: "RUA  LUIZ BATISTA PEREIRA DE ALMEIDA, 83", mac: "44:3B:32:5F:09:13", login: "gustavosouza9131@mor" },
+                ]
+            },
+            {
+                bairro: "Jardim Jose Maksoud",
+                clientes: [
+                    { id: "9203", nome: "REGIANE SANTOS GAIA", status: "Ativo", endereco: "RUA  RADRA MAMEDE ALLI, 295", mac: "44:3B:32:5A:35:50", login: "regianegaia@mor" },
+                ]
+            },
+            {
+                bairro: "Jardim Nova Jerusalém",
+                clientes: [
+                    { id: "5067", nome: "MARIA DA CONCEICAO DA ANUNCIACAO", status: "Ativo", endereco: "TRAVESSA  DO CONSOLADOR, 33", mac: "44:3B:32:57:A7:D1", login: "mariaanunciacao" },
+                    { id: "4827", nome: "JAKELYNE DOS SANTOS VIANA", status: "Ativo", endereco: "TRAVESSA CORDEIRO DE DEUS , 84", mac: "44:3B:32:5B:BE:0F", login: "jakelineviana" },
+                ]
+            },
+            {
+                bairro: "Jardim Novo Século",
+                clientes: [
+                    { id: "8096", nome: "JOSE HERCULANO NETO", status: "Ativo", endereco: "RUA  PETRONILIA INACIO PEREIRA, 69", mac: "44:3B:32:5F:08:33", login: "joseneto39931@mor" },
+                ]
+            },
+            {
+                bairro: "Jardim Parati",
+                clientes: [
+                    { id: "14102", nome: "LUIS HENRIQUE CORREIA DA ROSA", status: "Ativo", endereco: "RUA DA DIVISÃO  ATÉ 1013 1014, 975, CASA 1317 RUA 7", mac: "44:3B:32:69:F4:5D", login: "rosa@fibra" },
+                    { id: "14086", nome: "JANIO BISPO DA SILVA", status: "Bloqueio Automático", endereco: "RUA DO PIANO, 708", mac: "44:3B:32:71:5E:60", login: "janiobispo@fibra" },
+                    { id: "14055", nome: "EDIVALDO SIQUEIRA TIRODO JUNIOR", status: "Ativo", endereco: "RUA GENERAL GENTIL MARCONDES, 448, CASA", mac: "44:3B:32:5D:4B:80", login: "juniorloja1@fibra" },
+                    { id: "14029", nome: "GISLEYNE CRUZ DE OLIVEIRA", status: "Financeiro em atraso", endereco: "RUA DA DIVISÃO, 975, RUA 11 CASA 535", mac: "44:3B:32:92:02:96", login: "izabellapaiva@imais@aer" },
+                    { id: "14016", nome: "MARGARETE FIRMINO REZENDE", status: "Ativo", endereco: "RUA DA DIVISÃO, 975, RUA 4 CASA 273", mac: "44:3B:32:92:02:5E", login: "margarete" },
+                    { id: "14011", nome: "MARCELO HOKAMA MAZETTI", status: "Ativo", endereco: "RUA ALCEU AMOROSO LIMA, 332", mac: "44:3B:32:78:03:0D", login: "marcelohokama@imais@aer" },
+                    { id: "13997", nome: "TIAGO APARECIDO DOS SANTOS", status: "Ativo", endereco: "RUA SENADOR TEOTÔNIO VILELA, 18, ALTO DA BOA VISTA", mac: "44:3B:32:4D:09:9D", login: "tiagoap@fibra" },
+                    { id: "13989", nome: "DIEGO JEFERSON DOS SANTOS ARAUJO", status: "Ativo", endereco: "RUA GINEZ PAULO CORREA, 30", mac: "44:3B:32:B0:33:40", login: "diegojeferson@fibra" },
+                    { id: "13972", nome: "ANA PAULA MATTOS FRANCISCO", status: "Ativo", endereco: "RUA DO PIANO, 287", mac: "44:3B:32:59:95:EF", login: "anapaulamatos@fibra" },
+                    { id: "13966", nome: "DALYLLA FERREIRA DE DEUS", status: "Ativo", endereco: "RUA BILAC PINTO, 67", mac: "44:3B:32:B0:1F:10", login: "dalyllaferreira@imais@aer" },
+                    { id: "13963", nome: "ANTONIO CARLOS ALVES LEONEL", status: "Bloqueio Manual", endereco: "RUA DA DOÇURA, 792", mac: "44:3B:32:5D:83:88", login: "leonel@fibra" },
+                    { id: "13955", nome: "LEANDRO HENRIQUE MARTINS DA SILVA", status: "Ativo", endereco: "RUA GINEZ PAULO CORREA, 100", mac: "44:3B:32:5D:0E:40", login: "leandrohenrique@imais@aer" },
+                    { id: "13939", nome: "PAULO HENRIQUE DE ANDRADE", status: "Ativo", endereco: "RUA AVELINO DOS REIS, 680", mac: "44:3B:32:AF:02:4A", login: "pauloandrade@imais@aer" },
+                    { id: "13934", nome: "HELENO AMORIM", status: "Ativo", endereco: "RUA GINEZ PAULO CORREA, 171", mac: "44:3B:32:AE:91:3A", login: "heleno@fibra" },
+                    { id: "13906", nome: "TANIA ELIZABETH GOMES MARTINS", status: "Ativo", endereco: "RUA CARLOS MAXIMIANO, 39", mac: "44:3B:32:6E:20:D7", login: "taniamartins@fibra" },
+                    { id: "13657", nome: "ANA LUCIA FERREIRA", status: "Ativo", endereco: "RUA DA DIVISÃO, 2, CASA", mac: "44:3B:32:AF:00:A2", login: "anaferreira@imais@aer" },
+                    { id: "13585", nome: "ADRIANA MORAIS DE OLIVEIRA", status: "Bloqueio Automático", endereco: "RUA ERINE CALEPS DE ALMEIDA, 305, CASA", mac: "44:3B:32:B0:1D:F0", login: "adrianamorais@fibra" },
+                    { id: "13541", nome: "WILSOM BARBEARIA", status: "Bloqueio Automático", endereco: "RUA DO PIANO, SN", mac: "44:3B:32:B0:1F:50", login: "will@fibra" },
+                    { id: "11600", nome: "ALESSANDRO FERNANDES GONÇALVES", status: "Ativo", endereco: "RUA DA DIVISAO, 975", mac: "44:3B:32:5A:65:28", login: "alessandrogoncalves23631@aer" },
+                    { id: "10192", nome: "ADRIELE MATHIAS DE SOUZA", status: "Ativo", endereco: "RUA DA DIVISAO, 972", mac: "44:3B:32:4E:53:51", login: "adrielesouza" },
+                ]
+            },
+            {
+                bairro: "Jardim Santa Felicid",
+                clientes: [
+                    { id: "9115", nome: "SONIA MARIA DA SILVA ARAUJO", status: "Ativo", endereco: "RUA CELESTE CARVALHO RODRIGUES, 328", mac: "44:3B:32:5F:07:9F", login: "soniasilva35381@mor" },
+                    { id: "8808", nome: "ADELSON LUIZ DOS SANTOS", status: "Ativo", endereco: "RUA CELESTE CARVALHO RODRIGUES, 122", mac: "44:3B:32:5A:35:C4", login: "adelsonsantos11801@mor" },
+                ]
+            },
+            {
+                bairro: "Jose Maksoud",
+                clientes: [
+                    { id: "9485", nome: "THACILA JESUS DE CASTRO", status: "Bloqueio Automático", endereco: "RUA  ANTONIO DAVI MACEDO, 280", mac: "44:3B:32:4E:52:1D", login: "thacilacastro43781@mor" },
+                    { id: "9219", nome: "LUCIMAR DE JESUS MACIEL", status: "Ativo", endereco: "RUA AMADO NOGUEIRA DE MORAES , 576", mac: "44:3B:32:5E:FA:03", login: "lucimarmaciel1721@mor" },
+                    { id: "8919", nome: "LUANA SOUZA MESQUITA", status: "Ativo", endereco: "RUA  ANTONIO DAVI MACEDO, 337", mac: "44:3B:32:89:82:89", login: "luanamesquita10131@mor" },
+                    { id: "5050", nome: "FABIANO JOSE DA COSTA ALVES", status: "Ativo", endereco: "RUA SALIM DERZI, 334", mac: "44:3B:32:88:7B:76", login: "fabianoalves" },
+                ]
+            },
+            {
+                bairro: "Moreninha II",
+                clientes: [
+                    { id: "9131", nome: "SONIA LEDESMO BENITES DO NASCIMENTO", status: "Ativo", endereco: "RUA RIBEIRA, 534", mac: "44:3B:32:89:74:35", login: "sonianascimento42911@mor" },
+                ]
+            },
+            {
+                bairro: "Nova Capital",
+                clientes: [
+                    { id: "6257", nome: "IRENE DE SOUZA", status: "Financeiro em atraso", endereco: "RUA  EQUIPE SENNA, 437", mac: "44:3B:32:88:6F:C4", login: "irenesouza31471" },
+                ]
+            },
+            {
+                bairro: "Nova Jerusalém",
+                clientes: [
+                    { id: "2820", nome: "ROSANGELA DA SILVA AMORIM", status: "Ativo", endereco: "RUA  PEDRO BARROS DA SILVA, Q25 LT09", mac: "44:3B:32:57:A7:D9", login: "deniltonnogueira" },
+                ]
+            },
+            {
+                bairro: "Paraiso do Lageado",
+                clientes: [
+                    { id: "9184", nome: "CARLOS ALBERTO DOS SANTOS", status: "Ativo", endereco: "RUA PAULO FABIANE DE BARROS, 031, QD 03 LT17", mac: "44:3B:32:47:24:37", login: "carlossantos361@mor" },
+                    { id: "7693", nome: "TIAGO DE SOUSA LIMA RAMOS", status: "Ativo", endereco: "RUA ALBINO CALDART, 608, 608 QD10LT10", mac: "44:3B:32:4B:6A:E1", login: "tiagoramos24281@mor" },
+                    { id: "4628", nome: "ISAIAS DE OLIVEIRA MIRANDA", status: "Ativo", endereco: "RUA ELIAS MIGUEL BASMAGE, QD14LT08", mac: "44:3B:32:5F:08:E5", login: "isaiasmiranda" },
+                    { id: "4459", nome: "LARISSA FABIANA PEREIRA", status: "Ativo", endereco: "RUA PAULO FABIANE DE BARROS, 191, QD20LT19", mac: "44:3B:32:4E:0A:91", login: "larissapereira" },
+                ]
+            },
+            {
+                bairro: "Parque Novo Seculo",
+                clientes: [
+                    { id: "8752", nome: "SILVANA SANTANA DE ALENCAR SANCHEZ", status: "Ativo", endereco: "TRAVESSA ORLANDO MORESCHI, 225", mac: "44:3B:32:47:21:F1", login: "silvanasanchez11151@mor" },
+                    { id: "7269", nome: "FERNANDO ROSA DA SILVA", status: "Ativo", endereco: "RUA JOSÉ PEDROSSIAN, 417", mac: "44:3B:32:47:6F:13", login: "fernandosilva16871" },
+                ]
+            },
+            {
+                bairro: "Parque Novo Século",
+                clientes: [
+                    { id: "9767", nome: "SELMA MARIA SOUZA CATELAN ZENI", status: "Ativo", endereco: "TRAVESSA  DR MANOEL BALLAN, 39", mac: "44:3B:32:5F:03:1B", login: "selmazeni20011@mor" },
+                    { id: "7616", nome: "VANDERLEY DE ANDRADE ROSARIO", status: "Ativo", endereco: "TRAVESSA  DR MANOEL BALLAN, 99, QUADRA00007", mac: "44:3B:32:88:6F:CC", login: "vanderleyrosario1971@mor" },
+                    { id: "5296", nome: "ALEXANDRO PEREIRA DE SOUZA", status: "Ativo", endereco: "RUA CORONEL WILSON FONTOURA , 519", mac: "44:3B:32:51:D5:2B", login: "alexandrosouza" },
+                    { id: "4956", nome: "ROSELI VICENTE BEVENUTE", status: "Ativo", endereco: "RUA IRINEU MACHADO CARDOSO , 20", mac: "44:3B:32:5F:02:5B", login: "roselibevenute" },
+                ]
+            },
+            {
+                bairro: "Residencial Atlantic",
+                clientes: [
+                    { id: "6658", nome: "RAQUEL DE OLIVEIRA LEGUIR", status: "Ativo", endereco: "RUA DAS PEDRAS, 77", mac: "44:3B:32:5E:F9:B5", login: "raquelleguir" },
+                ]
+            },
+            {
+                bairro: "Santa Felicidade",
+                clientes: [
+                    { id: "13276", nome: "ANA CLAUDIA VEIRA DA CRUZ", status: "Ativo", endereco: "RUA ACEBURGO, 286", mac: "44:3B:32:CD:AE:0C", login: "anacruz27321@mor" },
+                ]
+            },
+            {
+                bairro: "Vila Cidade Morena",
+                clientes: [
+                    { id: "9656", nome: "SUELI MASCARENHAS DE CARVALHO", status: "Ativo", endereco: "RUA ITAPECERICA, 235", mac: "44:3B:32:5E:F9:8D", login: "suelicarvalho35371@mor" },
+                    { id: "9394", nome: "ROBERTA CACERES ARANTES", status: "Ativo", endereco: "RUA TABOAO DA SERRA, 523", mac: "44:3B:32:6E:F1:29", login: "robertaarantes30891@mor" },
+                    { id: "9068", nome: "HUDSON ALMEIDA LOPES", status: "Ativo", endereco: "RUA MINAS NOVAS, 749, CS315", mac: "44:3B:32:5F:08:FB", login: "hudsonlopes26301@mor" },
+                    { id: "9034", nome: "ALEX FERNANDES", status: "Ativo", endereco: "RUA MINAS NOVAS, 1231, CASA 08", mac: "44:3B:32:5E:F8:89", login: "alexfernandes7961@mor" },
+                    { id: "8797", nome: "CLAUDETE FRIES", status: "Ativo", endereco: "RUA PONTE FIRME, 211", mac: "44:3B:32:6E:F3:27", login: "claudetefries41981@mor" },
+                    { id: "8098", nome: "ISRAEL JESUS DE SOUZA", status: "Ativo", endereco: "RUA BUENOPOLIS, 704", mac: "44:3B:32:6E:F2:5F", login: "israelsouza14151@mor" },
+                    { id: "5029", nome: "MATHEUS SANTOS DE ARAUJO", status: "Ativo", endereco: "RUA CAMPOS DO JORDAO, 458", mac: "44:3B:32:87:04:3C", login: "matheusaraujo" },
+                    { id: "5375", nome: "ANTONIO CRUZEIROS", status: "Ativo", endereco: "RUA BARUERI, 942", mac: "44:3B:32:5F:02:C7", login: "antoniocruzeiros4351" },
+                ]
+            },
+            {
+                bairro: "Vila Moreninha II",
+                clientes: [
+                    { id: "9800", nome: "DALILA FERREIRA NANTES CARNEIRO", status: "Ativo", endereco: "RUA MATANAVIS, 07", mac: "44:3B:32:5B:C0:1B", login: "dalilacarneiro26411@mor" },
+                    { id: "9622", nome: "JAIRO BALBINO", status: "Ativo", endereco: "RUA MOCAMBO, 118", mac: "44:3B:32:5F:04:A5", login: "jairobalbino27571@mor" },
+                    { id: "9618", nome: "JERONIMO REZEK ROCHA", status: "Ativo", endereco: "RUA PALMACIA, 836", mac: "44:3B:32:5A:35:D4", login: "jeronimorocha44001@mor" },
+                    { id: "9553", nome: "GILSON DE SOUZA NATIS", status: "Ativo", endereco: "RUA BARUERI, 1143", mac: "44:3B:32:4A:E0:5B", login: "gilsonnatis36911@mor" },
+                    { id: "9496", nome: "MARIA ROZENI DE LIMA", status: "Ativo", endereco: "AVENIDA ALTO DA SERRA, 790", mac: "44:3B:32:5E:FA:19", login: "marialima43811@mor" },
+                    { id: "9377", nome: "WILMAR TEBALDI DA ROZA", status: "Ativo", endereco: "RUA BARUERI, 1729", mac: "44:3B:32:6E:F1:DB", login: "wilmarroza32221@mor" },
+                    { id: "9163", nome: "PEDRO OMAR ZANETE DE AVILA", status: "Bloqueio Manual", endereco: "RUA PROJETADA, 02", mac: "44:3B:32:5A:64:F8", login: "pedroavila42971@mor" },
+                    { id: "8868", nome: "ISAURA LIA DE JESUS", status: "Ativo", endereco: "RUA MADEIRA BRANCA, 195", mac: "44:3B:32:5A:64:48", login: "isaurajesus31751@mor" },
+                    { id: "8769", nome: "MARIA ANDREIA DOS SANTOS", status: "Ativo", endereco: "RUA ANACA, 562", mac: "44:3B:32:6E:F2:37", login: "mariasantos12291@mor" },
+                    { id: "8670", nome: "ZILDA ROSA DA SILVA", status: "Bloqueio Automático", endereco: "RUA PEDRA BRANCA, 08", mac: "44:3B:32:51:D5:29", login: "zildasilva25381@mor" },
+                    { id: "8654", nome: "KAMILA DE ARAUJO MORENO BARBOSA", status: "Ativo", endereco: "RUA AROAZES, 365", mac: "44:3B:32:5F:07:B5", login: "kamilabarbosa41671@mor" },
+                    { id: "8630", nome: "ILMA DE MATOS DA SILVA", status: "Ativo", endereco: "RUA BARUERI, 589", mac: "44:3B:32:D5:2A:0F", login: "ilmasilva41551@mor" },
+                    { id: "8355", nome: "VIVIANA AIRES VIANA", status: "Ativo", endereco: "RUA BARUERI, 202", mac: "44:3B:32:5F:01:31", login: "vivianaviana40751@mor" },
+                    { id: "8303", nome: "VERA LUCIA PEGORARI", status: "Ativo", endereco: "RUA PACAVIRA, 107", mac: "44:3B:32:87:04:D0", login: "verapegorari40611@mor" },
+                    { id: "7659", nome: "YASMIN LEMES PESSOA", status: "Ativo", endereco: "RUA TAJA, 128", mac: "44:3B:32:5B:C0:7B", login: "yasminpessoa38401@mor" },
+                    { id: "7590", nome: "OUTLET DO JEANS LTDA", status: "Financeiro em atraso", endereco: "RUA PALMACIA, 629, LJA03", mac: "44:3B:32:5B:C0:63", login: "outletltda26131@mor" },
+                    { id: "5540", nome: "WILLIAN SÓRIO", status: "Bloqueio Automático", endereco: "RUA SOLANIA, 117", mac: "44:3B:32:5A:63:DE", login: "williansorio" },
+                    { id: "5101", nome: "ALEX SILVA COLMAN", status: "Ativo", endereco: "RUA GUINE, 735", mac: "44:3B:32:34:86:17", login: "alexcolman" },
+                    { id: "5099", nome: "ARQUIDIOCESE PAROQUIA NSA CG", status: "Ativo", endereco: "RUA PEDRA BRANCA, 702", mac: "44:3B:32:47:6E:3F", login: "arquidioceseparoquia" },
+                    { id: "5000", nome: "ELIENE BARROS DOS SANTOS", status: "Ativo", endereco: "RUA TAJA, 117", mac: "44:3B:32:5F:07:ED", login: "elienesantos" },
+                    { id: "4917", nome: "JORGE ELEUTERIO DA SILVA SANTOS", status: "Ativo", endereco: "RUA PERUIBE, 608", mac: "44:3B:32:6E:F1:D1", login: "jorgesantos" },
+                    { id: "4802", nome: "JANAINE DE SOUSA MENDES", status: "Ativo", endereco: "TRAVESSA TAMBAIBA, 60", mac: "44:3B:32:5F:08:41", login: "janainemendes" },
+                    { id: "4743", nome: "SARA BARRIOS FERREIRA", status: "Ativo", endereco: "RUA ARITI, 58", mac: "44:3B:32:5E:F8:8F", login: "saraferreira" },
+                    { id: "4741", nome: "JAIME EUGENIO DE LIMA JUNIOR", status: "Ativo", endereco: "RUA PERUIBE, 355", mac: "44:3B:32:6E:F1:D1", login: "jaimejunior" },
+                    { id: "4638", nome: "VANDERSON HENRIQUE SANTOS VARGAS", status: "Ativo", endereco: "RUA OEIRAS, 173", mac: "44:3B:32:6E:F1:73", login: "vandersonvargas" },
+                    { id: "4613", nome: "EDNA BEZERRA DA CRUZ", status: "Ativo", endereco: "RUA OEIRAS, 173", mac: "44:3B:32:6E:F1:73", login: "ednacruz" },
+                    { id: "4250", nome: "ARISTIDES DA SILVA FILHO", status: "Bloqueio Automático", endereco: "RUA CAMACARI, 681", mac: "44:3B:32:88:7B:00", login: "aristidesfilho" },
+                    { id: "3536", nome: "JOAO JOSE DOS SANTOS", status: "Ativo", endereco: "RUA CAMBOATA, 163", mac: "44:3B:32:CC:74:DC", login: "joaosantos" },
+                    { id: "2896", nome: "LUCILENE ALVES DE CARVALHO", status: "Ativo", endereco: "RUA PERUIBE, 355", mac: "44:3B:32:5E:F9:19", login: "lucilenecarvalho" },
+                ]
+            },
+            {
+                bairro: "Vila Moreninha III",
+                clientes: [
+                    { id: "11898", nome: "MARIA AUXILIADORA SANTOS DUARTE", status: "Ativo", endereco: "Rua Oreade, 189", mac: "44:3B:32:47:25:17", login: "mariaduarte@mor" },
+                    { id: "9537", nome: "WILMA DE OLIVEIRA SOUZA", status: "Ativo", endereco: "TRAVESSA CELIDONIA, 186", mac: "44:3B:32:6E:F3:99", login: "wilmasouza12571@mor" },
+                    { id: "9267", nome: "ROSALINA MAURICIO BENITES", status: "Ativo", endereco: "RUA AMAPA DOCE, 326", mac: "44:3B:32:5C:C2:47", login: "rosalinabenites34461@mor" },
+                    { id: "9231", nome: "ENEDINA ALVES MARQUES", status: "Financeiro em atraso", endereco: "RUA JACAREUBA, 89", mac: "44:3B:32:5F:03:D1", login: "enedinamarques43091@mor" },
+                    { id: "8863", nome: "GILDACI SILVA MADALENA DE FARIAS", status: "Ativo", endereco: "RUA MINAS NOVAS, 1193, CS7", mac: "44:3B:32:5F:09:71", login: "gildacifarias25221@mor" },
+                    { id: "8831", nome: "EDMAURO ROMERO BENITES", status: "Ativo", endereco: "RUA RIBEIRA, 523", mac: "44:3B:32:5F:09:A7", login: "edmaurobenites42051@mor" },
+                    { id: "8261", nome: "ROSANGELA RODRIGUES DOS REIS MEDEIROS", status: "Ativo", endereco: "RUA MACABA, 187", mac: "44:3B:32:D3:BB:11", login: "rosangelamedeiro40441@mor" },
+                    { id: "7950", nome: "LOURIVAL LEANDRO DEUSDARA", status: "Financeiro em atraso", endereco: "RUA MACABA, 28", mac: "44:3B:32:6E:F3:73", login: "lourivaldeusdara24901@mor" },
+                    { id: "7791", nome: "ELVIS DENIS CRISPINIANO ROCHA", status: "Ativo", endereco: "RUA JATOBA-MIRIM, 88", mac: "44:3B:32:57:B3:B3", login: "elvisrocha31731@mor" },
+                    { id: "7730", nome: "MARLUCI NOGUEIRA DA SILVA", status: "Bloqueio Automático", endereco: "RUA SAMBACUIM, 161", mac: "44:3B:32:57:B5:15", login: "marlucisilva32781@mor" },
+                    { id: "7677", nome: "LUIZA SUBTIL DE OLIVEIRA", status: "Financeiro em atraso", endereco: "RUA MURURE, 180", mac: "44:3B:32:5F:0A:03", login: "luizaoliveira38441@mor" },
+                    { id: "7239", nome: "PATRICIA CANDELARIA PEREIRA FARDIN", status: "Ativo", endereco: "RUA GUINE, 378, 378CASA3", mac: "44:3B:32:88:66:0C", login: "patriciafardin" },
+                    { id: "7195", nome: "SONIA MARIA RODRIGUES DA SILVA", status: "Ativo", endereco: "RUA ZINIA, 190", mac: "44:3B:32:6E:F3:6F", login: "soniasilva24981" },
+                    { id: "6699", nome: "OSVALDO ALEXANDRE", status: "Ativo", endereco: "RUA  MARIA DA GLORIA RIQUELME CONTE, 339", mac: "44:3B:32:6E:F2:B5", login: "osvaldoalexandre" },
+                    { id: "6504", nome: "JHONY MARCOS MACHADO LEIVA", status: "Bloqueio Automático", endereco: "RUA BAGUARI, 515", mac: "44:3B:32:4E:01:27", login: "jhonyleiva" },
+                    { id: "5474", nome: "RAFAEL ELIZARIO VIEIRA", status: "Ativo", endereco: "RUA TAMAREIRA, 55", mac: "44:3B:32:5F:09:C7", login: "rafaelvieira29351" },
+                    { id: "5460", nome: "IRAI DOS SANTOS", status: "Ativo", endereco: "RUA TAMIARAMA, 26", mac: "44:3B:32:4E:30:69", login: "iraisantos" },
+                    { id: "5123", nome: "VANDA BARBOSA DE LIMA", status: "Ativo", endereco: "RUA MADEIRA BRANCA, 213", mac: "44:3B:32:4E:04:C1", login: "vandalima" },
+                    { id: "5117", nome: "GIDEVALDO CUNHA DA SILVA", status: "Bloqueio Manual", endereco: "RUA TAMIARAMA, 50", mac: "44:3B:32:5F:09:A3", login: "gidevaldosilva" },
+                    { id: "5035", nome: "MARIA CAVALHEIRO LOPES", status: "Ativo", endereco: "TRAVESSA TAMBAIBA, 226", mac: "44:3B:32:89:81:D5", login: "marialopes26641" },
+                    { id: "5019", nome: "ELIZETE DE OLIVEIRA DIAS", status: "Ativo", endereco: "RUA IMBURANA, 18", mac: "44:3B:32:88:7B:36", login: "elizetedias" },
+                    { id: "4912", nome: "APARECIDA CARDOSO MACIEL", status: "Bloqueio Automático", endereco: "RUA MANOEL CANDIDO SOUZA, 240", mac: "44:3B:32:5E:F9:9B", login: "aparecidamaciel" },
+                    { id: "4877", nome: "RODRIGO DANIEL PINTO VALEJO", status: "Ativo", endereco: "AVENIDA BAOBA, 291", mac: "44:3B:32:5E:F9:AB", login: "rodrigovalejo" },
+                    { id: "4828", nome: "NEUZA MARQUES DE OLIVEIRA", status: "Ativo", endereco: "RUA QUINA DA SERRA, 789", mac: "44:3B:32:5F:02:CF", login: "neusaoliveira" },
+                    { id: "4675", nome: "IRACI PADILHA AMARAL", status: "Ativo", endereco: "RUA MURURE, 640", mac: "44:3B:32:6E:F2:EF", login: "iraciamaral" },
+                    { id: "4609", nome: "ADRIANO GAMARRA DE MATOS", status: "Ativo", endereco: "AVENIDA ARATICUN, 321", mac: "44:3B:32:5A:63:DC", login: "adrianomatos" },
+                    { id: "4526", nome: "CRISTIAN JORGE MARTINS FERNANDES", status: "Ativo", endereco: "RUA  NEFERSON CLAIR DE MORAES, 15", mac: "44:3B:32:5A:65:1C", login: "cristianfernandes" },
+                    { id: "4510", nome: "LUIZ FELIPE CHAVES", status: "Bloqueio Automático", endereco: "RUA OREADE, 216", mac: "44:3B:32:59:3C:E8", login: "luizchaves" },
+                    { id: "4457", nome: "ANDREIA DA SILVA SANTOS DE SOUZA", status: "Ativo", endereco: "RUA BICUIBA, 456", mac: "44:3B:32:4E:02:D9", login: "andreiasouza" },
+                    { id: "2843", nome: "WESLEY ANTUNES ALVES", status: "Ativo", endereco: "RUA MACABA, 471", mac: "44:3B:32:5F:08:4B", login: "wesleyalves" },
+                ]
+            },
+            {
+                bairro: "Vila Moreninha IV",
+                clientes: [
+                    { id: "9966", nome: "MARCIA CELIA RODRIGUES", status: "Ativo", endereco: "RUA ORIOMAR FERNANDES, 246", mac: "44:3B:32:87:04:3A", login: "marciarodrigues33491@mor" },
+                    { id: "9807", nome: "FRANCISCO PEREIRA DA SILVA JUNIOR", status: "Ativo", endereco: "RUA ANTONIO HONOSTORIO REZENDE, 205", mac: "44:3B:32:5F:04:75", login: "franciscojunior24201@mor" },
+                    { id: "9328", nome: "JONATHAN VILALBA NUNES", status: "Bloqueio Automático", endereco: "AVENIDA GRANDE FLORESTA, 172", mac: "44:3B:32:59:3C:E2", login: "jonathannunes43351@mor" },
+                    { id: "6468", nome: "NATHYELI DE SOUZA", status: "Bloqueio Manual", endereco: "RUA CANDIDA MENEZES CINTRA, 229", mac: "44:3B:32:4E:0A:9D", login: "nathyelisouza" },
+                    { id: "4830", nome: "CLEIA PEREIRA AJALA", status: "Ativo", endereco: "RUA JOAO ADOLFO CINTRA, 217", mac: "44:3B:32:5F:09:77", login: "cleiaajala" },
+                    { id: "4353", nome: "SIDNEY VIEIRA DA SILVA", status: "Ativo", endereco: "RUA CLOTILDE CHAIA, 661", mac: "44:3B:32:4E:0A:77", login: "sidneysilva" },
+                ]
+            },
+            {
+                bairro: "Vila Nova Capital",
+                clientes: [
+                    { id: "8967", nome: "RAYANE LUIZ VIEIRA", status: "Ativo", endereco: "RUA OSNI MOURA, QQ6 L07B", mac: "44:3B:32:6E:F2:8F", login: "rayanevieira42441@mor" },
+                    { id: "5444", nome: "VIVIANE VICENTE ARNULFO", status: "Ativo", endereco: "RUA OSNI MOURA, 107", mac: "44:3B:32:6E:F2:33", login: "vivianearnulfo" },
+                    { id: "5268", nome: "RENATA VILLALBA GAVILAN", status: "Ativo", endereco: "RUA BENTO DE SOUZA, 235, QD 10 LT 18", mac: "44:3B:32:6E:F1:C5", login: "renatagavilan" },
+                    { id: "4741", nome: "JAIME EUGENIO DE LIMA JUNIOR", status: "Ativo", endereco: "RUA PERUIBE, 355", mac: "44:3B:32:6E:F1:D1", login: "jaimejunior" },
+                ]
+            }
+        ].map(bairro => {
+            // Filter out "Desativado" clients from each neighborhood
+            bairro.clientes = bairro.clientes.filter(cliente => cliente.status !== 'Desativado');
+            return bairro;
+        }).filter(bairro => bairro.clientes.length > 0); // Remove neighborhoods that become empty
 
-        // --- Firebase Configuration ---
-        const hardcodedConfig = {
-            apiKey: "AIzaSyBLtW7-aJe6LWyk5iIdhr6YM1KzlJSlCOI",
-            authDomain: "ipv6-12a88.firebaseapp.com",
-            projectId: "ipv6-12a88",
-            storageBucket: "ipv6-12a88.appspot.com",
-            messagingSenderId: "865496039162",
-            appId: "1:865496039162:web:7e94d4a39a3c3e6b94d343"
-        };
-
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : hardcodedConfig;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-
-        // --- Firebase Initialization ---
-        let app, auth, db, userId;
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch (e) {
-            console.error("Error initializing Firebase:", e);
-            const errorElement = document.getElementById('loading-overlay');
-            errorElement.innerHTML = `
-                <div class="text-center p-4">
-                    <p class="text-red-500 font-semibold">Erro ao conectar com o servidor Firebase.</p>
-                    <p class="text-gray-600 mt-2">Verifique se as credenciais da Firebase estão corretas e se o domínio está autorizado no seu projeto Firebase.</p>
-                    <p class="text-gray-500 mt-2 text-sm">Abra a consola do navegador (F12) para mais detalhes técnicos.</p>
-                </div>`;
-        }
-
-        // --- App State ---
-        let clientUpdates = {};
-        let flatClientsData = [];
-        let uniqueBairros = [];
-        let isFirestoreLoaded = false;
-
-        // --- DOM Elements ---
-        const clientListContainer = document.getElementById('client-list-container');
+        const clientList = document.getElementById('client-list');
         const searchInput = document.getElementById('search');
         const bairroFilter = document.getElementById('bairro-filter');
         const noResultsDiv = document.getElementById('no-results');
         const dashboard = document.getElementById('dashboard');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const userIdDisplay = document.getElementById('user-id-display');
-        const exportExcelBtn = document.getElementById('export-excel-btn');
-        const exportPdfBtn = document.getElementById('export-pdf-btn');
 
-        // --- Data Normalization and Cleaning ---
-        function normalizeText(text) {
-            if (!text) return '';
-            return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-        }
-
-        function prepareAllData(rawData) {
-            const mergedBairros = new Map();
-            rawData.forEach(bairro => {
-                const activeClientes = bairro.clientes.filter(cliente => cliente.status !== 'Desativado');
-                if (activeClientes.length === 0) return;
-                const normalizedName = normalizeText(bairro.bairro);
-                if (mergedBairros.has(normalizedName)) {
-                    const existing = mergedBairros.get(normalizedName);
-                    const existingClientIds = new Set(existing.clientes.map(c => c.id));
-                    activeClientes.forEach(newClient => {
-                        if (!existingClientIds.has(newClient.id)) existing.clientes.push(newClient);
-                    });
-                } else {
-                    mergedBairros.set(normalizedName, { displayName: bairro.bairro, clientes: activeClientes });
-                }
-            });
-            uniqueBairros = Array.from(mergedBairros.values()).map(b => b.displayName).sort((a, b) => a.localeCompare(b));
-            const allClients = [];
-            mergedBairros.forEach((bairroData) => {
-                bairroData.clientes.forEach(client => {
-                    allClients.push({ ...client, bairro: bairroData.displayName });
-                });
-            });
-            flatClientsData = allClients;
-        }
-
-        // --- Initial Static Data ---
-        const rawBairrosData = [
-            { bairro: "Cidade Morena", clientes: [ { id: "9879", nome: "JB SANTOS PEÇAS E SERVIÇOS LTDA", status: "Ativo", endereco: "RUA SALMORAO, 733", mac: "44:3B:32:5F:03:35", login: "joaosantos24441" }, { id: "9416", nome: "ELIANE BARBOSA", status: "Ativo", endereco: "TRAVESSA MANOEL JOSE DE TOLEDO, 637", mac: "44:3B:32:5B:BE:7B", login: "elianebarbosa43531@mor" }, { id: "8608", nome: "GUSTAVO DOS SANTOS SOUZA", status: "Ativo", endereco: "RUA  LUIZ BATISTA PEREIRA DE ALMEIDA, 83", mac: "44:3B:32:5F:09:13", login: "gustavosouza9131@mor" }, { id: "8076", nome: "RICARDO PINHEIRO DE LIMA", status: "Ativo", endereco: "RUA  VILLAS DE PALOMA , 52", mac: "44:3B:32:5F:03:5D", login: "ricardolima39881@mor" }, { id: "7462", nome: "APARECIDO PEREIRA DA SILVA", status: "Ativo", endereco: "RUA  VILLAS DE PALOMA , 52, AP703", mac: "44:3B:32:6E:F2:61", login: "aparecidosilva6981@mor" }, { id: "7389", nome: "LETICIA LUIZA PRAZERES", status: "Bloqueio Manual", endereco: "RUA  VILLAS DE PALOMA , 52", mac: "44:3B:32:5F:08:ED", login: "leticiaprazeres37261" }, { id: "3324", nome: "MIRIANE RIGONE", status: "Ativo", endereco: "RUA  NEFERSON CLAIR DE MORAES, 308, CS110", mac: "44:3B:32:4A:E0:83", login: "mirianerigone" }, ] },
-            { bairro: "Conjunto Aero Rancho", clientes: [ { id: "13909", nome: "LUIZ ANTONIO CORREA DOS SANTOS", status: "Ativo", endereco: "AVENIDA EZEQUIEL FERREIRA LIMA, 1321, SOBRADO", mac: "44:3B:32:86:D6:8B", login: "luizantonio@fibra" }, { id: "11711", nome: "ROSALINA ARECO", status: "Ativo", endereco: "RUA VALDIVINO BASTOS DE JESUS, 137", mac: "44:3B:32:47:24:67", login: "rosalinaareco24301@aer" }, { id: "11664", nome: "MARIA APARECIDA VIEIRA PINTO", status: "Ativo", endereco: "TRAVESSA RICKY NELSON, 26", mac: "44:3B:32:5F:0A:31", login: "mariapinto24061@aer" }, { id: "10871", nome: "JURANDIRA MARIA TEIXEIRA", status: "Ativo", endereco: "TRAVESSA DICK FARNEY, 09", mac: "44:3B:32:4A:E0:93", login: "jurandirteixeira" }, { id: "10809", nome: "ANA PAULA DA SILVA DE SOUZA", status: "Ativo", endereco: "AVENIDA VEREADOR THYRSON DE ALMEIDA, 4155, BLOCO 9 AP 933", mac: "44:3B:32:5A:63:90", login: "anasouza14031" }, { id: "10324", nome: "CLAYTON CRISTIANO RIBEIRO GONSALVES", status: "Ativo", endereco: "RUA MARIA DAS DORES SOARES, 37", mac: "44:3B:32:5A:65:F2", login: "claytongonsalves" }, { id: "10065", nome: "NILSON DA SILVA", status: "Desativado", endereco: "AVENIDA VEREADOR THYRSON DE ALMEIDA, 4155", mac: "44:3B:32:89:74:33", login: "nilsonsilva8191-desativado" }, { id: "2948", nome: "IVO DA PAIXAO NETO", status: "Ativo", endereco: "RUA ISRAELANDIA, 218", mac: "44:3B:32:5F:07:B7", login: "ivoneto" }, ] },
-            { bairro: "DJ do córrego", clientes: [ { id: "7912", nome: "ELKER PRATES ROMEIRO", status: "Ativo", endereco: "Rua José da Costa Féliz, 0, QD07LT08", mac: "44:3B:32:5C:C3:0B", login: "elkerromeiro16921@mor" }, ] },
-            { bairro: "Guanandi II", clientes: [ { id: "14077", nome: "NAZARÉ DA SILVA MELO", status: "Ativo", endereco: "RUA ARIQUEMES, 91, CASA", mac: "44:3B:32:71:5E:E0", login: "nazare" }, { id: "14074", nome: "LINDALVA D ORNELAS", status: "Ativo", endereco: "RUA COCAL, 449, CASA", mac: "44:3B:32:71:5C:A8", login: "lindalva@fibra" }, { id: "14062", nome: "DENER MENDES LOPES", status: "Ativo", endereco: "RUA FLOR DE MAIO, 83", mac: "44:3B:32:5D:32:70", login: "denermendes@fibra" }, { id: "14030", nome: "FABRICIO RODRIGUES DE SOUZA", status: "Ativo", endereco: "RUA GUARUVA, 136", mac: "44:3B:32:6C:2A:C7", login: "fabriciorodrigues@fibra" }, { id: "13958", nome: "VALTER DA SILVA BASTOS", status: "Ativo", endereco: "AVENIDA PRESIDENTE TANCREDO NEVES, 258", mac: "44:3B:32:69:F0:5D", login: "valterdasilva@fibra" }, { id: "13936", nome: "KATHERINE DUTRA FRAGOSO GARCIA", status: "Ativo", endereco: "AV EZEQUIEL FERREIRA LIMA, 1841, SALÃO", mac: "44:3B:32:69:F4:85", login: "katherinedutra@fibra" }, { id: "13923", nome: "EZEQUIEL TRINDADE DE JESUS", status: "Bloqueio Automático", endereco: "RUA COCAL, 77", mac: "44:3B:32:B0:1F:C8", login: "ezequieltrindade@fibra" }, { id: "13650", nome: "DEBORA SOUTO GODINHO", status: "Ativo", endereco: "RUA CABEDELO, 1183", mac: "44:3B:32:34:FB:87", login: "deborasouto@fibra" }, { id: "13580", nome: "ANTONIO SERGIO MARIANO DA SILVA", status: "Ativo", endereco: "RUA CABEDELO, 804", mac: "44:3B:32:B0:1D:68", login: "antoniosergio@fibra" }, { id: "11258", nome: "MICHELLI PAULINA FERREIRA", status: "Bloqueio Automático", endereco: "RUA IGARASSU, 355", mac: "44:3B:32:6E:F1:D3", login: "michelliferreira14791@aer" }, { id: "11178", nome: "RAMONA FERREIRA DE LIMA", status: "Ativo", endereco: "RUA CURUPI, 158", mac: "44:3B:32:5F:02:39", login: "ramomalima20061" }, { id: "10368", nome: "ELENIR DOS SANTOS PIELL", status: "Bloqueio Manual", endereco: "RUA COCAL, 129", mac: "44:3B:32:5E:F8:FD", login: "elenirpiell" }, ] },
-            { bairro: "Iracy Coelho III", clientes: [ { id: "11521", nome: "GLAUCE PULQUERIO NOGUEIRA", status: "Ativo", endereco: "RUA INDAIAL, 205", mac: "44:3B:32:59:3E:30", login: "glaucenogueira23061@aer" }, ] },
-            { bairro: "Jardim Aero Rancho", clientes: [ { id: "14089", nome: "CLEUZA MARIA GONÇALVES", status: "Ativo", endereco: "RUA CARMEM MIRANDA, 284", mac: "44:3B:32:B0:1E:50", login: "cleuza@fibra" }, { id: "14036", nome: "MARCIA MARQUES PEREIRA", status: "Ativo", endereco: "RUA GRUTA DO MAQUINÉ, 235", mac: "44:3B:32:69:F1:35", login: "marciaazus@fibra" }, { id: "14026", nome: "IVERSON OROSCO LEITE", status: "Ativo", endereco: "RUA COIMBRA, 42", mac: "44:3B:32:4D:0A:8D", login: "iverson@fibra" }, { id: "14025", nome: "PEDRO HENRIQUE RIBEIRO AIRES", status: "Ativo", endereco: "RUA BUENO, 43, CASA", mac: "44:3B:32:71:5C:80", login: "pedroaires@fibra" }, { id: "14023", nome: "VANILDA GONÇALVES GOMES", status: "Ativo", endereco: "RUA NOVA FRIBURGO, 93", mac: "44:3B:32:69:D2:5D", login: "vanilda@fibra" }, { id: "13992", nome: "IRAILDA MARIA DE OLIVEIRA SOUZA", status: "Ativo", endereco: "RUA GRUTA DO MAQUINÉ, 94, FRENTE", mac: "44:3B:32:90:96:DC", login: "irailda@fibra" }, { id: "13976", nome: "WILLIAM AGUSTINHO DA SILVA", status: "Ativo", endereco: "RUA CARMEM MIRANDA, 43, CASA 2", mac: "44:3B:32:5D:4B:18", login: "williamsilva@fibra" }, { id: "13635", nome: "IVONETE GONÇALVES", status: "Ativo", endereco: "RUA NOVA FRIBURGO, 210, CASA", mac: "44:3B:32:92:02:E6", login: "ivonete@fibra" }, { id: "13626", nome: "FRANCISCO XAVIER BENITEZ", status: "Financeiro em atraso", endereco: "RUA TAUMATURGO, 2016", mac: "44:3B:32:B0:1E:40", login: "franciscoxavier@fibra" }, { id: "11868", nome: "GUILBERT TITO DA SILVA LOPES", status: "Ativo", endereco: "RUA GRUTA DO MAQUINE, 451", mac: "44:3B:32:5A:35:BA", login: "guilbertlopes5721@aer" }, { id: "11656", nome: "DEISE RIBEIRO DE FREITAS AYRES", status: "Ativo", endereco: "RUA GALEAO, 1617", mac: "44:3B:32:5F:03:8F", login: "deiseayres15641@aer" }, { id: "11619", nome: "ISABELA CRISTINA DE SOUZA PINHEIRO", status: "Ativo", endereco: "RUA LIRIO DOS CAMPOS, 442", mac: "44:3B:32:5A:35:D2", login: "isabelapinheiro14041@aer" }, { id: "11544", nome: "EDNIZ FERREIRA DE ARAUJO", status: "Ativo", endereco: "RUA LAURA VICUNA, 831", mac: "44:3B:32:87:03:8E", login: "ednizaraujo23231@aer" }, { id: "11506", nome: "RENATO PEREIRA ESQUER", status: "Bloqueio Automático", endereco: "RUA BABACU, 215", mac: "44:3B:32:87:04:D2", login: "renatoesquer751@aer" }, { id: "11489", nome: "JANE SALVADOR", status: "Ativo", endereco: "RUA CONGONHA DOS CAMPOS, 138", mac: "44:3B:32:47:21:F9", login: "janesalvador2471@aer" }, { id: "11449", nome: "ELKER PRATES ROMEIRO", status: "Ativo", endereco: "RUA GALEAO, 308", mac: "44:3B:32:5C:C2:FD", login: "elkerromeiro22451@aer" }, { id: "11224", nome: "MARIA BASTOS LIMA", status: "Ativo", endereco: "RUA FILIPINAS, 228", mac: "44:3B:32:4E:53:49", login: "marialima12481@aer" }, { id: "10864", nome: "MARIA DE LOURDES DA CONCEIÇÃO", status: "Ativo", endereco: "RUA GRUTA DO MAQUINE, 84", mac: "44:3B:32:5C:C2:41", login: "mariaconceicao" }, { id: "10788", nome: "MAYARA LETICIA MAGALHAES CEZARIO", status: "Ativo", endereco: "RUA PRIMULA, 454", mac: "44:3B:32:5A:63:B0", login: "mayaracezario" }, { id: "10667", nome: "VANDA PAULINO DOS SANTOS", status: "Ativo", endereco: "RUA DAMIANOPOLIS, 308", mac: "44:3B:32:6E:F3:97", login: "vandasantos" }, { id: "10513", nome: "ENIR ALVES DA SILVA", status: "Ativo", endereco: "RUA BERTA LUCIA, 818", mac: "44:3B:32:5C:C2:43", login: "enirsilva" }, { id: "10491", nome: "GRAZIEL DE SOUZA DOS SANTOS", status: "Ativo", endereco: "RUA MAJORIE, 34", mac: "44:3B:32:89:81:D1", login: "grazielsantos" }, { id: "10445", nome: "RENATO AYALA ARAUJO", status: "Ativo", endereco: "RUA CLEVELANDIA, 38", mac: "44:3B:32:47:25:19", login: "renatoaraujo" }, { id: "10434", nome: "RODRIGO SOLIDADE DA SILVA", status: "Ativo", endereco: "RUA IEMANJA, 115", mac: "44:3B:32:5F:02:47", login: "rodrigosilva" }, { id: "10417", nome: "CASSIA COLMAN DA SILVA", status: "Ativo", endereco: "AVENIDA RACHEL DE QUEIROZ, 1468", mac: "44:3B:32:5F:03:41", login: "cassiasilva" }, { id: "10388", nome: "ANDERSON DE OLIVEIRA SOUZA", status: "Ativo", endereco: "RUA BERTA LUCIA, 424", mac: "44:3B:32:5C:C3:01", login: "andersonsouza" }, { id: "10365", nome: "JAQUELINE PESSOA DA SILVA UMBELINO", status: "Ativo", endereco: "AVENIDA PRESIDENTE TANCREDO NEVES, 920", mac: "44:3B:32:5F:03:3F", login: "jaquelineumbelino" }, { id: "10364", nome: "MIGUEL DA SILVA BRITO JUNIOR", status: "Ativo", endereco: "RUA GRUTA DO MAQUINE, 1025", mac: "44:3B:32:47:21:F7", login: "migueljunior" }, { id: "10294", nome: "ALINE DOS SANTOS IBANHES", status: "Ativo", endereco: "RUA BUENO, 60", mac: "44:3B:32:59:41:10", login: "alineibanhes" }, { id: "10139", nome: "ELISANGELA DE FATIMA SIQUEIRA DOS S", status: "Ativo", endereco: "RUA TABAJARA, 773", mac: "44:3B:32:5F:02:4B", login: "elisangelasantos" }, ] },
-            { bairro: "Jardim Centenario", clientes: [ { id: "11658", nome: "SILVIO FERREIRA DE ALMEIDA", status: "Ativo", endereco: "RUA SANTA QUITERIA, 753", mac: "44:3B:32:6E:F2:87", login: "silvioalmeida15541@aer" }, ] },
-            { bairro: "Jardim Das Hortencia", clientes: [ { id: "10895", nome: "VANIA DA SILVA AQUINO", status: "Financeiro em atraso", endereco: "RUA TAUMATURGO, 382", mac: "44:3B:32:59:40:38", login: "vaniaaquino" }, ] },
-            { bairro: "Jardim das Hortênsias", clientes: [ { id: "13964", nome: "VANDILMA DA SILVA VIEIRA", status: "Ativo", endereco: "RUA TRITÔNEA, 110, CASA", mac: "44:3B:32:4D:0A:A5", login: "vandilma@fibra" }, { id: "10510", nome: "THALIA DE ALENCAR BATISTA DE SOUZA", status: "Ativo", endereco: "RUA SALVIA, 23", mac: "44:3B:32:57:B2:DB", login: "thaliasouza" }, { id: "10293", nome: "JULIANA DENGUEZ FERREIRA", status: "Ativo", endereco: "RUA SALVIA, 105", mac: "44:3B:32:57:B5:91", login: "julianaferreira" }, ] },
-            { bairro: "Jardim do Córrego", clientes: [ { id: "8608", nome: "GUSTAVO DOS SANTOS SOUZA", status: "Ativo", endereco: "RUA  LUIZ BATISTA PEREIRA DE ALMEIDA, 83", mac: "44:3B:32:5F:09:13", login: "gustavosouza9131@mor" }, ] },
-            { bairro: "Jardim Jose Maksoud", clientes: [ { id: "9203", nome: "REGIANE SANTOS GAIA", status: "Ativo", endereco: "RUA  RADRA MAMEDE ALLI, 295", mac: "44:3B:32:5A:35:50", login: "regianegaia@mor" }, ] },
-            { bairro: "Jardim Nova Jerusalém", clientes: [ { id: "5067", nome: "MARIA DA CONCEICAO DA ANUNCIACAO", status: "Ativo", endereco: "TRAVESSA  DO CONSOLADOR, 33", mac: "44:3B:32:57:A7:D1", login: "mariaanunciacao" }, { id: "4827", nome: "JAKELYNE DOS SANTOS VIANA", status: "Ativo", endereco: "TRAVESSA CORDEIRO DE DEUS , 84", mac: "44:3B:32:5B:BE:0F", login: "jakelineviana" }, ] },
-            { bairro: "Jardim Novo Século", clientes: [ { id: "8096", nome: "JOSE HERCULANO NETO", status: "Ativo", endereco: "RUA  PETRONILIA INACIO PEREIRA, 69", mac: "44:3B:32:5F:08:33", login: "joseneto39931@mor" }, ] },
-            { bairro: "Jardim Parati", clientes: [ { id: "14102", nome: "LUIS HENRIQUE CORREIA DA ROSA", status: "Ativo", endereco: "RUA DA DIVISÃO  ATÉ 1013 1014, 975, CASA 1317 RUA 7", mac: "44:3B:32:69:F4:5D", login: "rosa@fibra" }, { id: "14086", nome: "JANIO BISPO DA SILVA", status: "Bloqueio Automático", endereco: "RUA DO PIANO, 708", mac: "44:3B:32:71:5E:60", login: "janiobispo@fibra" }, { id: "14055", nome: "EDIVALDO SIQUEIRA TIRODO JUNIOR", status: "Ativo", endereco: "RUA GENERAL GENTIL MARCONDES, 448, CASA", mac: "44:3B:32:5D:4B:80", login: "juniorloja1@fibra" }, { id: "14029", nome: "GISLEYNE CRUZ DE OLIVEIRA", status: "Financeiro em atraso", endereco: "RUA DA DIVISÃO, 975, RUA 11 CASA 535", mac: "44:3B:32:92:02:96", login: "izabellapaiva@imais@aer" }, { id: "14016", nome: "MARGARETE FIRMINO REZENDE", status: "Ativo", endereco: "RUA DA DIVISÃO, 975, RUA 4 CASA 273", mac: "44:3B:32:92:02:5E", login: "margarete" }, { id: "14011", nome: "MARCELO HOKAMA MAZETTI", status: "Ativo", endereco: "RUA ALCEU AMOROSO LIMA, 332", mac: "44:3B:32:78:03:0D", login: "marcelohokama@imais@aer" }, { id: "13997", nome: "TIAGO APARECIDO DOS SANTOS", status: "Ativo", endereco: "RUA SENADOR TEOTÔNIO VILELA, 18, ALTO DA BOA VISTA", mac: "44:3B:32:4D:09:9D", login: "tiagoap@fibra" }, { id: "13989", nome: "DIEGO JEFERSON DOS SANTOS ARAUJO", status: "Ativo", endereco: "RUA GINEZ PAULO CORREA, 30", mac: "44:3B:32:B0:33:40", login: "diegojeferson@fibra" }, { id: "13972", nome: "ANA PAULA MATTOS FRANCISCO", status: "Ativo", endereco: "RUA DO PIANO, 287", mac: "44:3B:32:59:95:EF", login: "anapaulamatos@fibra" }, { id: "13966", nome: "DALYLLA FERREIRA DE DEUS", status: "Ativo", endereco: "RUA BILAC PINTO, 67", mac: "44:3B:32:B0:1F:10", login: "dalyllaferreira@imais@aer" }, { id: "13963", nome: "ANTONIO CARLOS ALVES LEONEL", status: "Bloqueio Manual", endereco: "RUA DA DOÇURA, 792", mac: "44:3B:32:5D:83:88", login: "leonel@fibra" }, { id: "13955", nome: "LEANDRO HENRIQUE MARTINS DA SILVA", status: "Ativo", endereco: "RUA GINEZ PAULO CORREA, 100", mac: "44:3B:32:5D:0E:40", login: "leandrohenrique@imais@aer" }, { id: "13939", nome: "PAULO HENRIQUE DE ANDRADE", status: "Ativo", endereco: "RUA AVELINO DOS REIS, 680", mac: "44:3B:32:AF:02:4A", login: "pauloandrade@imais@aer" }, { id: "13934", nome: "HELENO AMORIM", status: "Ativo", endereco: "RUA GINEZ PAULO CORREA, 171", mac: "44:3B:32:AE:91:3A", login: "heleno@fibra" }, { id: "13906", nome: "TANIA ELIZABETH GOMES MARTINS", status: "Ativo", endereco: "RUA CARLOS MAXIMIANO, 39", mac: "44:3B:32:6E:20:D7", login: "taniamartins@fibra" }, { id: "13657", nome: "ANA LUCIA FERREIRA", status: "Ativo", endereco: "RUA DA DIVISÃO, 2, CASA", mac: "44:3B:32:AF:00:A2", login: "anaferreira@imais@aer" }, { id: "13585", nome: "ADRIANA MORAIS DE OLIVEIRA", status: "Bloqueio Automático", endereco: "RUA ERINE CALEPS DE ALMEIDA, 305, CASA", mac: "44:3B:32:B0:1D:F0", login: "adrianamorais@fibra" }, { id: "13541", nome: "WILSOM BARBEARIA", status: "Bloqueio Automático", endereco: "RUA DO PIANO, SN", mac: "44:3B:32:B0:1F:50", login: "will@fibra" }, { id: "11600", nome: "ALESSANDRO FERNANDES GONÇALVES", status: "Ativo", endereco: "RUA DA DIVISAO, 975", mac: "44:3B:32:5A:65:28", login: "alessandrogoncalves23631@aer" }, { id: "10192", nome: "ADRIELE MATHIAS DE SOUZA", status: "Ativo", endereco: "RUA DA DIVISAO, 972", mac: "44:3B:32:4E:53:51", login: "adrielesouza" }, ] },
-            { bairro: "Jardim Santa Felicid", clientes: [ { id: "9115", nome: "SONIA MARIA DA SILVA ARAUJO", status: "Ativo", endereco: "RUA CELESTE CARVALHO RODRIGUES, 328", mac: "44:3B:32:5F:07:9F", login: "soniasilva35381@mor" }, { id: "8808", nome: "ADELSON LUIZ DOS SANTOS", status: "Ativo", endereco: "RUA CELESTE CARVALHO RODRIGUES, 122", mac: "44:3B:32:5A:35:C4", login: "adelsonsantos11801@mor" }, ] },
-            { bairro: "Jose Maksoud", clientes: [ { id: "9485", nome: "THACILA JESUS DE CASTRO", status: "Bloqueio Automático", endereco: "RUA  ANTONIO DAVI MACEDO, 280", mac: "44:3B:32:4E:52:1D", login: "thacilacastro43781@mor" }, { id: "9219", nome: "LUCIMAR DE JESUS MACIEL", status: "Ativo", endereco: "RUA AMADO NOGUEIRA DE MORAES , 576", mac: "44:3B:32:5E:FA:03", login: "lucimarmaciel1721@mor" }, { id: "8919", nome: "LUANA SOUZA MESQUITA", status: "Ativo", endereco: "RUA  ANTONIO DAVI MACEDO, 337", mac: "44:3B:32:89:82:89", login: "luanamesquita10131@mor" }, { id: "5050", nome: "FABIANO JOSE DA COSTA ALVES", status: "Ativo", endereco: "RUA SALIM DERZI, 334", mac: "44:3B:32:88:7B:76", login: "fabianoalves" }, ] },
-            { bairro: "Moreninha II", clientes: [ { id: "9131", nome: "SONIA LEDESMO BENITES DO NASCIMENTO", status: "Ativo", endereco: "RUA RIBEIRA, 534", mac: "44:3B:32:89:74:35", login: "sonianascimento42911@mor" }, ] },
-            { bairro: "Nova Capital", clientes: [ { id: "6257", nome: "IRENE DE SOUZA", status: "Financeiro em atraso", endereco: "RUA  EQUIPE SENNA, 437", mac: "44:3B:32:88:6F:C4", login: "irenesouza31471" }, ] },
-            { bairro: "Nova Jerusalém", clientes: [ { id: "2820", nome: "ROSANGELA DA SILVA AMORIM", status: "Ativo", endereco: "RUA  PEDRO BARROS DA SILVA, Q25 LT09", mac: "44:3B:32:57:A7:D9", login: "deniltonnogueira" }, ] },
-            { bairro: "Paraiso do Lageado", clientes: [ { id: "9184", nome: "CARLOS ALBERTO DOS SANTOS", status: "Ativo", endereco: "RUA PAULO FABIANE DE BARROS, 031, QD 03 LT17", mac: "44:3B:32:47:24:37", login: "carlossantos361@mor" }, { id: "7693", nome: "TIAGO DE SOUSA LIMA RAMOS", status: "Ativo", endereco: "RUA ALBINO CALDART, 608, 608 QD10LT10", mac: "44:3B:32:4B:6A:E1", login: "tiagoramos24281@mor" }, { id: "4628", nome: "ISAIAS DE OLIVEIRA MIRANDA", status: "Ativo", endereco: "RUA ELIAS MIGUEL BASMAGE, QD14LT08", mac: "44:3B:32:5F:08:E5", login: "isaiasmiranda" }, { id: "4459", nome: "LARISSA FABIANA PEREIRA", status: "Ativo", endereco: "RUA PAULO FABIANE DE BARROS, 191, QD20LT19", mac: "44:3B:32:4E:0A:91", login: "larissapereira" }, ] },
-            { bairro: "Parque Novo Seculo", clientes: [ { id: "8752", nome: "SILVANA SANTANA DE ALENCAR SANCHEZ", status: "Ativo", endereco: "TRAVESSA ORLANDO MORESCHI, 225", mac: "44:3B:32:47:21:F1", login: "silvanasanchez11151@mor" }, { id: "7269", nome: "FERNANDO ROSA DA SILVA", status: "Ativo", endereco: "RUA JOSÉ PEDROSSIAN, 417", mac: "44:3B:32:47:6F:13", login: "fernandosilva16871" }, ] },
-            { bairro: "Parque Novo Século", clientes: [ { id: "9767", nome: "SELMA MARIA SOUZA CATELAN ZENI", status: "Ativo", endereco: "TRAVESSA  DR MANOEL BALLAN, 39", mac: "44:3B:32:5F:03:1B", login: "selmazeni20011@mor" }, { id: "7616", nome: "VANDERLEY DE ANDRADE ROSARIO", status: "Ativo", endereco: "TRAVESSA  DR MANOEL BALLAN, 99, QUADRA00007", mac: "44:3B:32:88:6F:CC", login: "vanderleyrosario1971@mor" }, { id: "5296", nome: "ALEXANDRO PEREIRA DE SOUZA", status: "Ativo", endereco: "RUA CORONEL WILSON FONTOURA , 519", mac: "44:3B:32:51:D5:2B", login: "alexandrosouza" }, { id: "4956", nome: "ROSELI VICENTE BEVENUTE", status: "Ativo", endereco: "RUA IRINEU MACHADO CARDOSO , 20", mac: "44:3B:32:5F:02:5B", login: "roselibevenute" }, ] },
-            { bairro: "Residencial Atlantic", clientes: [ { id: "6658", nome: "RAQUEL DE OLIVEIRA LEGUIR", status: "Ativo", endereco: "RUA DAS PEDRAS, 77", mac: "44:3B:32:5E:F9:B5", login: "raquelleguir" }, ] },
-            { bairro: "Santa Felicidade", clientes: [ { id: "13276", nome: "ANA CLAUDIA VEIRA DA CRUZ", status: "Ativo", endereco: "RUA ACEBURGO, 286", mac: "44:3B:32:CD:AE:0C", login: "anacruz27321@mor" }, ] },
-            { bairro: "Vila Cidade Morena", clientes: [ { id: "9656", nome: "SUELI MASCARENHAS DE CARVALHO", status: "Ativo", endereco: "RUA ITAPECERICA, 235", mac: "44:3B:32:5E:F9:8D", login: "suelicarvalho35371@mor" }, { id: "9394", nome: "ROBERTA CACERES ARANTES", status: "Ativo", endereco: "RUA TABOAO DA SERRA, 523", mac: "44:3B:32:6E:F1:29", login: "robertaarantes30891@mor" }, { id: "9068", nome: "HUDSON ALMEIDA LOPES", status: "Ativo", endereco: "RUA MINAS NOVAS, 749, CS315", mac: "44:3B:32:5F:08:FB", login: "hudsonlopes26301@mor" }, { id: "9034", nome: "ALEX FERNANDES", status: "Ativo", endereco: "RUA MINAS NOVAS, 1231, CASA 08", mac: "44:3B:32:5E:F8:89", login: "alexfernandes7961@mor" }, { id: "8797", nome: "CLAUDETE FRIES", status: "Ativo", endereco: "RUA PONTE FIRME, 211", mac: "44:3B:32:6E:F3:27", login: "claudetefries41981@mor" }, { id: "8098", nome: "ISRAEL JESUS DE SOUZA", status: "Ativo", endereco: "RUA BUENOPOLIS, 704", mac: "44:3B:32:6E:F2:5F", login: "israelsouza14151@mor" }, { id: "5029", nome: "MATHEUS SANTOS DE ARAUJO", status: "Ativo", endereco: "RUA CAMPOS DO JORDAO, 458", mac: "44:3B:32:87:04:3C", login: "matheusaraujo" }, { id: "5375", nome: "ANTONIO CRUZEIROS", status: "Ativo", endereco: "RUA BARUERI, 942", mac: "44:3B:32:5F:02:C7", login: "antoniocruzeiros4351" }, ] },
-            { bairro: "Vila Moreninha II", clientes: [ { id: "9800", nome: "DALILA FERREIRA NANTES CARNEIRO", status: "Ativo", endereco: "RUA MATANAVIS, 07", mac: "44:3B:32:5B:C0:1B", login: "dalilacarneiro26411@mor" }, { id: "9622", nome: "JAIRO BALBINO", status: "Ativo", endereco: "RUA MOCAMBO, 118", mac: "44:3B:32:5F:04:A5", login: "jairobalbino27571@mor" }, { id: "9618", nome: "JERONIMO REZEK ROCHA", status: "Ativo", endereco: "RUA PALMACIA, 836", mac: "44:3B:32:5A:35:D4", login: "jeronimorocha44001@mor" }, { id: "9553", nome: "GILSON DE SOUZA NATIS", status: "Ativo", endereco: "RUA BARUERI, 1143", mac: "44:3B:32:4A:E0:5B", login: "gilsonnatis36911@mor" }, { id: "9496", nome: "MARIA ROZENI DE LIMA", status: "Ativo", endereco: "AVENIDA ALTO DA SERRA, 790", mac: "44:3B:32:5E:FA:19", login: "marialima43811@mor" }, { id: "9377", nome: "WILMAR TEBALDI DA ROZA", status: "Ativo", endereco: "RUA BARUERI, 1729", mac: "44:3B:32:6E:F1:DB", login: "wilmarroza32221@mor" }, { id: "9163", nome: "PEDRO OMAR ZANETE DE AVILA", status: "Bloqueio Manual", endereco: "RUA PROJETADA, 02", mac: "44:3B:32:5A:64:F8", login: "pedroavila42971@mor" }, { id: "8868", nome: "ISAURA LIA DE JESUS", status: "Ativo", endereco: "RUA MADEIRA BRANCA, 195", mac: "44:3B:32:5A:64:48", login: "isaurajesus31751@mor" }, { id: "8769", nome: "MARIA ANDREIA DOS SANTOS", status: "Ativo", endereco: "RUA ANACA, 562", mac: "44:3B:32:6E:F2:37", login: "mariasantos12291@mor" }, { id: "8670", nome: "ZILDA ROSA DA SILVA", status: "Bloqueio Automático", endereco: "RUA PEDRA BRANCA, 08", mac: "44:3B:32:51:D5:29", login: "zildasilva25381@mor" }, { id: "8654", nome: "KAMILA DE ARAUJO MORENO BARBOSA", status: "Ativo", endereco: "RUA AROAZES, 365", mac: "44:3B:32:5F:07:B5", login: "kamilabarbosa41671@mor" }, { id: "8630", nome: "ILMA DE MATOS DA SILVA", status: "Ativo", endereco: "RUA BARUERI, 589", mac: "44:3B:32:D5:2A:0F", login: "ilmasilva41551@mor" }, { id: "8355", nome: "VIVIANA AIRES VIANA", status: "Ativo", endereco: "RUA BARUERI, 202", mac: "44:3B:32:5F:01:31", login: "vivianaviana40751@mor" }, { id: "8303", nome: "VERA LUCIA PEGORARI", status: "Ativo", endereco: "RUA PACAVIRA, 107", mac: "44:3B:32:87:04:D0", login: "verapegorari40611@mor" }, { id: "7659", nome: "YASMIN LEMES PESSOA", status: "Ativo", endereco: "RUA TAJA, 128", mac: "44:3B:32:5B:C0:7B", login: "yasminpessoa38401@mor" }, { id: "7590", nome: "OUTLET DO JEANS LTDA", status: "Financeiro em atraso", endereco: "RUA PALMACIA, 629, LJA03", mac: "44:3B:32:5B:C0:63", login: "outletltda26131@mor" }, { id: "5540", nome: "WILLIAN SÓRIO", status: "Bloqueio Automático", endereco: "RUA SOLANIA, 117", mac: "44:3B:32:5A:63:DE", login: "williansorio" }, { id: "5101", nome: "ALEX SILVA COLMAN", status: "Ativo", endereco: "RUA GUINE, 735", mac: "44:3B:32:34:86:17", login: "alexcolman" }, { id: "5099", nome: "ARQUIDIOCESE PAROQUIA NSA CG", status: "Ativo", endereco: "RUA PEDRA BRANCA, 702", mac: "44:3B:32:47:6E:3F", login: "arquidioceseparoquia" }, { id: "5000", nome: "ELIENE BARROS DOS SANTOS", status: "Ativo", endereco: "RUA TAJA, 117", mac: "44:3B:32:5F:07:ED", login: "elienesantos" }, { id: "4917", nome: "JORGE ELEUTERIO DA SILVA SANTOS", status: "Ativo", endereco: "RUA PERUIBE, 608", mac: "44:3B:32:6E:F1:D1", login: "jorgesantos" }, { id: "4802", nome: "JANAINE DE SOUSA MENDES", status: "Ativo", endereco: "TRAVESSA TAMBAIBA, 60", mac: "44:3B:32:5F:08:41", login: "janainemendes" }, { id: "4743", nome: "SARA BARRIOS FERREIRA", status: "Ativo", endereco: "RUA ARITI, 58", mac: "44:3B:32:5E:F8:8F", login: "saraferreira" }, { id: "4741", nome: "JAIME EUGENIO DE LIMA JUNIOR", status: "Ativo", endereco: "RUA PERUIBE, 355", mac: "44:3B:32:6E:F1:D1", login: "jaimejunior" }, { id: "4638", nome: "VANDERSON HENRIQUE SANTOS VARGAS", status: "Ativo", endereco: "RUA OEIRAS, 173", mac: "44:3B:32:6E:F1:73", login: "vandersonvargas" }, { id: "4613", nome: "EDNA BEZERRA DA CRUZ", status: "Ativo", endereco: "RUA OEIRAS, 173", mac: "44:3B:32:6E:F1:73", login: "ednacruz" }, { id: "4250", nome: "ARISTIDES DA SILVA FILHO", status: "Bloqueio Automático", endereco: "RUA CAMACARI, 681", mac: "44:3B:32:88:7B:00", login: "aristidesfilho" }, { id: "3536", nome: "JOAO JOSE DOS SANTOS", status: "Ativo", endereco: "RUA CAMBOATA, 163", mac: "44:3B:32:CC:74:DC", login: "joaosantos" }, { id: "2896", nome: "LUCILENE ALVES DE CARVALHO", status: "Ativo", endereco: "RUA PERUIBE, 355", mac: "44:3B:32:5E:F9:19", login: "lucilenecarvalho" }, ] },
-            { bairro: "Vila Moreninha III", clientes: [ { id: "11898", nome: "MARIA AUXILIADORA SANTOS DUARTE", status: "Ativo", endereco: "Rua Oreade, 189", mac: "44:3B:32:47:25:17", login: "mariaduarte@mor" }, { id: "9537", nome: "WILMA DE OLIVEIRA SOUZA", status: "Ativo", endereco: "TRAVESSA CELIDONIA, 186", mac: "44:3B:32:6E:F3:99", login: "wilmasouza12571@mor" }, { id: "9267", nome: "ROSALINA MAURICIO BENITES", status: "Ativo", endereco: "RUA AMAPA DOCE, 326", mac: "44:3B:32:5C:C2:47", login: "rosalinabenites34461@mor" }, { id: "9231", nome: "ENEDINA ALVES MARQUES", status: "Financeiro em atraso", endereco: "RUA JACAREUBA, 89", mac: "44:3B:32:5F:03:D1", login: "enedinamarques43091@mor" }, { id: "8863", nome: "GILDACI SILVA MADALENA DE FARIAS", status: "Ativo", endereco: "RUA MINAS NOVAS, 1193, CS7", mac: "44:3B:32:5F:09:71", login: "gildacifarias25221@mor" }, { id: "8831", nome: "EDMAURO ROMERO BENITES", status: "Ativo", endereco: "RUA RIBEIRA, 523", mac: "44:3B:32:5F:09:A7", login: "edmaurobenites42051@mor" }, { id: "8261", nome: "ROSANGELA RODRIGUES DOS REIS MEDEIROS", status: "Ativo", endereco: "RUA MACABA, 187", mac: "44:3B:32:D3:BB:11", login: "rosangelamedeiro40441@mor" }, { id: "7950", nome: "LOURIVAL LEANDRO DEUSDARA", status: "Financeiro em atraso", endereco: "RUA MACABA, 28", mac: "44:3B:32:6E:F3:73", login: "lourivaldeusdara24901@mor" }, { id: "7791", nome: "ELVIS DENIS CRISPINIANO ROCHA", status: "Ativo", endereco: "RUA JATOBA-MIRIM, 88", mac: "44:3B:32:57:B3:B3", login: "elvisrocha31731@mor" }, { id: "7730", nome: "MARLUCI NOGUEIRA DA SILVA", status: "Bloqueio Automático", endereco: "RUA SAMBACUIM, 161", mac: "44:3B:32:57:B5:15", login: "marlucisilva32781@mor" }, { id: "7677", nome: "LUIZA SUBTIL DE OLIVEIRA", status: "Financeiro em atraso", endereco: "RUA MURURE, 180", mac: "44:3B:32:5F:0A:03", login: "luizaoliveira38441@mor" }, { id: "7239", nome: "PATRICIA CANDELARIA PEREIRA FARDIN", status: "Ativo", endereco: "RUA GUINE, 378, 378CASA3", mac: "44:3B:32:88:66:0C", login: "patriciafardin" }, { id: "7195", nome: "SONIA MARIA RODRIGUES DA SILVA", status: "Ativo", endereco: "RUA ZINIA, 190", mac: "44:3B:32:6E:F3:6F", login: "soniasilva24981" }, { id: "6699", nome: "OSVALDO ALEXANDRE", status: "Ativo", endereco: "RUA  MARIA DA GLORIA RIQUELME CONTE, 339", mac: "44:3B:32:6E:F2:B5", login: "osvaldoalexandre" }, { id: "6504", nome: "JHONY MARCOS MACHADO LEIVA", status: "Bloqueio Automático", endereco: "RUA BAGUARI, 515", mac: "44:3B:32:4E:01:27", login: "jhonyleiva" }, { id: "5474", nome: "RAFAEL ELIZARIO VIEIRA", status: "Ativo", endereco: "RUA TAMAREIRA, 55", mac: "44:3B:32:5F:09:C7", login: "rafaelvieira29351" }, { id: "5460", nome: "IRAI DOS SANTOS", status: "Ativo", endereco: "RUA TAMIARAMA, 26", mac: "44:3B:32:4E:30:69", login: "iraisantos" }, { id: "5123", nome: "VANDA BARBOSA DE LIMA", status: "Ativo", endereco: "RUA MADEIRA BRANCA, 213", mac: "44:3B:32:4E:04:C1", login: "vandalima" }, { id: "5117", nome: "GIDEVALDO CUNHA DA SILVA", status: "Bloqueio Manual", endereco: "RUA TAMIARAMA, 50", mac: "44:3B:32:5F:09:A3", login: "gidevaldosilva" }, { id: "5035", nome: "MARIA CAVALHEIRO LOPES", status: "Ativo", endereco: "TRAVESSA TAMBAIBA, 226", mac: "44:3B:32:89:81:D5", login: "marialopes26641" }, { id: "5019", nome: "ELIZETE DE OLIVEIRA DIAS", status: "Ativo", endereco: "RUA IMBURANA, 18", mac: "44:3B:32:88:7B:36", login: "elizetedias" }, { id: "4912", nome: "APARECIDA CARDOSO MACIEL", status: "Bloqueio Automático", endereco: "RUA MANOEL CANDIDO SOUZA, 240", mac: "44:3B:32:5E:F9:9B", login: "aparecidamaciel" }, { id: "4877", nome: "RODRIGO DANIEL PINTO VALEJO", status: "Ativo", endereco: "AVENIDA BAOBA, 291", mac: "44:3B:32:5E:F9:AB", login: "rodrigovalejo" }, { id: "4828", nome: "NEUZA MARQUES DE OLIVEIRA", status: "Ativo", endereco: "RUA QUINA DA SERRA, 789", mac: "44:3B:32:5F:02:CF", login: "neusaoliveira" }, { id: "4675", nome: "IRACI PADILHA AMARAL", status: "Ativo", endereco: "RUA MURURE, 640", mac: "44:3B:32:6E:F2:EF", login: "iraciamaral" }, { id: "4609", nome: "ADRIANO GAMARRA DE MATOS", status: "Ativo", endereco: "AVENIDA ARATICUN, 321", mac: "44:3B:32:5A:63:DC", login: "adrianomatos" }, { id: "4526", nome: "CRISTIAN JORGE MARTINS FERNANDES", status: "Ativo", endereco: "RUA  NEFERSON CLAIR DE MORAES, 15", mac: "44:3B:32:5A:65:1C", login: "cristianfernandes" }, { id: "4510", nome: "LUIZ FELIPE CHAVES", status: "Bloqueio Automático", endereco: "RUA OREADE, 216", mac: "44:3B:32:59:3C:E8", login: "luizchaves" }, { id: "4457", nome: "ANDREIA DA SILVA SANTOS DE SOUZA", status: "Ativo", endereco: "RUA BICUIBA, 456", mac: "44:3B:32:4E:02:D9", login: "andreiasouza" }, { id: "2843", nome: "WESLEY ANTUNES ALVES", status: "Ativo", endereco: "RUA MACABA, 471", mac: "44:3B:32:5F:08:4B", login: "wesleyalves" }, ] },
-            { bairro: "Vila Moreninha IV", clientes: [ { id: "9966", nome: "MARCIA CELIA RODRIGUES", status: "Ativo", endereco: "RUA ORIOMAR FERNANDES, 246", mac: "44:3B:32:87:04:3A", login: "marciarodrigues33491@mor" }, { id: "9807", nome: "FRANCISCO PEREIRA DA SILVA JUNIOR", status: "Ativo", endereco: "RUA ANTONIO HONOSTORIO REZENDE, 205", mac: "44:3B:32:5F:04:75", login: "franciscojunior24201@mor" }, { id: "9328", nome: "JONATHAN VILALBA NUNES", status: "Bloqueio Automático", endereco: "AVENIDA GRANDE FLORESTA, 172", mac: "44:3B:32:59:3C:E2", login: "jonathannunes43351@mor" }, { id: "6468", nome: "NATHYELI DE SOUZA", status: "Bloqueio Manual", endereco: "RUA CANDIDA MENEZES CINTRA, 229", mac: "44:3B:32:4E:0A:9D", login: "nathyelisouza" }, { id: "4830", nome: "CLEIA PEREIRA AJALA", status: "Ativo", endereco: "RUA JOAO ADOLFO CINTRA, 217", mac: "44:3B:32:5F:09:77", login: "cleiaajala" }, { id: "4353", nome: "SIDNEY VIEIRA DA SILVA", status: "Ativo", endereco: "RUA CLOTILDE CHAIA, 661", mac: "44:3B:32:4E:0A:77", login: "sidneysilva" }, ] },
-            { bairro: "Vila Nova Capital", clientes: [ { id: "8967", nome: "RAYANE LUIZ VIEIRA", status: "Ativo", endereco: "RUA OSNI MOURA, QQ6 L07B", mac: "44:3B:32:6E:F2:8F", login: "rayanevieira42441@mor" }, { id: "5444", nome: "VIVIANE VICENTE ARNULFO", status: "Ativo", endereco: "RUA OSNI MOURA, 107", mac: "44:3B:32:6E:F2:33", login: "vivianearnulfo" }, { id: "5268", nome: "RENATA VILLALBA GAVILAN", status: "Ativo", endereco: "RUA BENTO DE SOUZA, 235, QD 10 LT 18", mac: "44:3B:32:6E:F1:C5", login: "renatagavilan" }, { id: "4741", nome: "JAIME EUGENIO DE LIMA JUNIOR", status: "Ativo", endereco: "RUA PERUIBE, 355", mac: "44:3B:32:6E:F1:D1", login: "jaimejunior" }, ] }
-        ];
-
-        // --- UI Rendering Functions ---
+        // Function to get the color class for status badges
         function getStatusBadgeClass(status) {
             switch (status) {
                 case 'Ativo': return 'bg-green-100 text-green-800';
@@ -236,230 +454,187 @@
         }
         
         function renderDashboard() {
-            const totalClientes = flatClientsData.length;
-            const statusCounts = { Ativo: 0, Bloqueado: 0, Financeiro: 0 };
-            flatClientsData.forEach(c => {
-                if (c.status === 'Ativo') statusCounts.Ativo++;
-                else if (c.status.includes('Bloqueio')) statusCounts.Bloqueado++;
-                else if (c.status === 'Financeiro em atraso') statusCounts.Financeiro++;
+            let totalClientes = 0;
+            const statusCounts = {
+                Ativo: 0,
+                Bloqueado: 0,
+                Financeiro: 0
+            };
+
+            bairrosData.forEach(b => {
+                b.clientes.forEach(c => {
+                    totalClientes++;
+                    if (c.status === 'Ativo') statusCounts.Ativo++;
+                    else if (c.status.includes('Bloqueio')) statusCounts.Bloqueado++;
+                    else if (c.status === 'Financeiro em atraso') statusCounts.Financeiro++;
+                });
             });
+
             dashboard.innerHTML = `
-                <div class="bg-white p-4 rounded-lg shadow flex items-center"><div class="bg-blue-100 text-blue-600 rounded-full p-3 mr-4"><i class="fas fa-users fa-lg"></i></div><div><p class="text-sm text-gray-500">Total de Clientes</p><p class="text-2xl font-bold">${totalClientes}</p></div></div>
-                <div class="bg-white p-4 rounded-lg shadow flex items-center"><div class="bg-green-100 text-green-600 rounded-full p-3 mr-4"><i class="fas fa-check-circle fa-lg"></i></div><div><p class="text-sm text-gray-500">Ativos</p><p class="text-2xl font-bold">${statusCounts.Ativo}</p></div></div>
-                <div class="bg-white p-4 rounded-lg shadow flex items-center"><div class="bg-red-100 text-red-600 rounded-full p-3 mr-4"><i class="fas fa-lock fa-lg"></i></div><div><p class="text-sm text-gray-500">Bloqueados</p><p class="text-2xl font-bold">${statusCounts.Bloqueado}</p></div></div>
-                <div class="bg-white p-4 rounded-lg shadow flex items-center"><div class="bg-yellow-100 text-yellow-600 rounded-full p-3 mr-4"><i class="fas fa-dollar-sign fa-lg"></i></div><div><p class="text-sm text-gray-500">Atraso Financeiro</p><p class="text-2xl font-bold">${statusCounts.Financeiro}</p></div></div>
+                <div class="bg-white p-4 rounded-lg shadow flex items-center">
+                    <div class="bg-blue-100 text-blue-600 rounded-full p-3 mr-4"><i class="fas fa-users fa-lg"></i></div>
+                    <div>
+                        <p class="text-sm text-gray-500">Total de Clientes</p>
+                        <p class="text-2xl font-bold">${totalClientes}</p>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow flex items-center">
+                    <div class="bg-green-100 text-green-600 rounded-full p-3 mr-4"><i class="fas fa-check-circle fa-lg"></i></div>
+                    <div>
+                        <p class="text-sm text-gray-500">Ativos</p>
+                        <p class="text-2xl font-bold">${statusCounts.Ativo}</p>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow flex items-center">
+                     <div class="bg-red-100 text-red-600 rounded-full p-3 mr-4"><i class="fas fa-lock fa-lg"></i></div>
+                    <div>
+                        <p class="text-sm text-gray-500">Bloqueados</p>
+                        <p class="text-2xl font-bold">${statusCounts.Bloqueado}</p>
+                    </div>
+                </div>
+                 <div class="bg-white p-4 rounded-lg shadow flex items-center">
+                     <div class="bg-yellow-100 text-yellow-600 rounded-full p-3 mr-4"><i class="fas fa-dollar-sign fa-lg"></i></div>
+                    <div>
+                        <p class="text-sm text-gray-500">Atraso Financeiro</p>
+                        <p class="text-2xl font-bold">${statusCounts.Financeiro}</p>
+                    </div>
+                </div>
             `;
         }
-        
-        function getFilteredClients() {
-            const filterText = searchInput.value;
-            const bairro = bairroFilter.value;
-            return flatClientsData.filter(cliente => {
-                const nameMatch = cliente.nome.toLowerCase().includes(filterText.toLowerCase());
-                const bairroMatch = (bairro === 'all' || cliente.bairro === bairro);
-                return nameMatch && bairroMatch;
-            });
-        }
 
-        function renderClients() {
-            const filteredClientes = getFilteredClients();
-            
-            clientListContainer.innerHTML = `
-                <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                    <div class="table-responsive p-2">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bairro</th>
-                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agendamento Troca</th>
-                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Observações</th>
-                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="client-table-body" class="bg-white divide-y divide-gray-200"></tbody>
-                        </table>
-                    </div>
-                </div>`;
+        // Function to render the client list
+        function renderClients(filter = '', bairro = 'all') {
+            clientList.innerHTML = '';
+            let resultsFound = false;
 
-            const tableBody = document.getElementById('client-table-body');
-            if (filteredClientes.length > 0) {
-                tableBody.innerHTML = filteredClientes.map(cliente => {
-                    const update = clientUpdates[cliente.id] || {};
-                    const savedSwap = update.swapStatus || 'Não Agendado';
-                    const savedObs = update.observation || '';
-                    return `
-                        <tr id="row_${cliente.id}">
-                            <td class="px-4 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-900">${cliente.nome}</div><div class="text-sm text-gray-500">Login: <span class="font-mono">${cliente.login || 'N/A'}</span></div><div class="text-sm text-gray-500">MAC: <span class="font-mono">${cliente.mac || 'N/A'}</span></div></td>
-                            <td class="px-4 py-4 whitespace-nowrap"><div class="text-sm text-gray-700">${cliente.bairro}</div></td>
-                            <td class="px-4 py-4 whitespace-nowrap"><select class="p-2 border border-gray-300 rounded-md" onchange="window.saveClientUpdate('${cliente.id}', 'swapStatus', this.value)"><option value="Não Agendado" ${savedSwap === 'Não Agendado' ? 'selected' : ''}>Não Agendado</option><option value="Agendado" ${savedSwap === 'Agendado' ? 'selected' : ''}>Agendado</option></select></td>
-                            <td class="px-4 py-4"><textarea class="w-full p-2 border border-gray-300 rounded-md" rows="2" oninput="window.saveObservationDebounced('${cliente.id}', this.value)">${savedObs}</textarea></td>
-                            <td class="px-4 py-4 whitespace-nowrap"><span class="text-xs font-medium px-2 py-0.5 rounded-full ${getStatusBadgeClass(cliente.status)}">${cliente.status}</span></td>
-                        </tr>`;
-                }).join('');
-            }
-            
-            noResultsDiv.classList.toggle('hidden', filteredClientes.length > 0);
-            clientListContainer.classList.toggle('hidden', filteredClientes.length === 0);
-        }
-
-        // --- Firestore & Export ---
-        let debounceTimer;
-        function debounce(func, delay) {
-            return function(...args) {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => func.apply(this, args), delay);
-            };
-        }
-
-        window.saveClientUpdate = async (clientId, field, value) => {
-            if (!db || !userId) return;
-            const docRef = doc(db, `artifacts/${appId}/public/data/client_updates`, clientId);
-            const row = document.getElementById(`row_${clientId}`);
-            if (row) {
-                row.classList.add('row-saving');
-                setTimeout(() => row.classList.remove('row-saving'), 500);
-            }
-            try {
-                await setDoc(docRef, { [field]: value, lastUpdatedBy: userId }, { merge: true });
-            } catch (error) {
-                console.error("Error writing to Firestore: ", error);
-                if (row) row.classList.remove('row-saving');
-            }
-        };
-        
-        window.saveObservationDebounced = debounce((clientId, value) => {
-            window.saveClientUpdate(clientId, 'observation', value);
-        }, 500);
-        
-        function exportToCSV() {
-            const clients = getFilteredClients();
-            const headers = ['Nome', 'Login', 'MAC', 'Endereço', 'Bairro', 'Status Cliente', 'Status Troca', 'Observações'];
-            const csvRows = [headers.join(',')];
-
-            for (const client of clients) {
-                const update = clientUpdates[client.id] || {};
-                const swapStatus = update.swapStatus || 'Não Agendado';
-                const observation = (update.observation || '').replace(/"/g, '""'); // Escape double quotes
-
-                const values = [
-                    client.nome, client.login, client.mac, `"${client.endereco}"`, client.bairro,
-                    client.status, swapStatus, `"${observation}"`
-                ].join(',');
-                csvRows.push(values);
-            }
-
-            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'dashboard_clientes.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function exportToPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const clients = getFilteredClients();
-            
-            const tableColumn = ["Nome", "Bairro", "Status", "Agendamento", "Observações"];
-            const tableRows = [];
-
-            clients.forEach(client => {
-                const update = clientUpdates[client.id] || {};
-                const swapStatus = update.swapStatus || 'Não Agendado';
-                const observation = update.observation || '';
-                const clientData = [client.nome, client.bairro, client.status, swapStatus, observation];
-                tableRows.push(clientData);
-            });
-
-            doc.autoTable(tableColumn, tableRows, { startY: 20 });
-            doc.text("Relatório de Clientes", 14, 15);
-            doc.save("dashboard_clientes.pdf");
-        }
-
-        function setupFirestoreListener() {
-            const updatesCollectionRef = collection(db, `artifacts/${appId}/public/data/client_updates`);
-            onSnapshot(updatesCollectionRef, (snapshot) => {
-                console.log("Recebida atualização da Firebase. Documentos:", snapshot.size); // Para depuração
-                
-                // Recria o objeto de atualizações a partir do zero para garantir consistência
-                const newUpdates = {};
-                snapshot.forEach(doc => {
-                    newUpdates[doc.id] = doc.data();
-                });
-                clientUpdates = newUpdates;
-
-                if (!isFirestoreLoaded) {
-                    isFirestoreLoaded = true;
-                    loadingOverlay.style.display = 'none';
+            bairrosData.forEach(bairroData => {
+                if (bairro !== 'all' && bairroData.bairro !== bairro) {
+                    return;
                 }
 
-                // Re-renderiza a tabela para refletir o novo estado
-                renderClients();
-            }, (error) => {
-                console.error("Error with Firestore listener:", error);
-                loadingOverlay.innerHTML = '<p class="text-red-500">Erro de conexão com o banco de dados em tempo real.</p>';
+                const filteredClientes = bairroData.clientes.filter(cliente => 
+                    cliente.nome.toLowerCase().includes(filter.toLowerCase())
+                );
+
+                if (filteredClientes.length > 0) {
+                    resultsFound = true;
+                    const accordionItem = document.createElement('div');
+                    accordionItem.className = 'bg-white rounded-lg shadow-md overflow-hidden';
+                    
+                    const clientCount = filteredClientes.length;
+
+                    accordionItem.innerHTML = `
+                        <button class="accordion-button w-full flex justify-between items-center p-4 text-left font-semibold text-lg text-gray-700 hover:bg-gray-50">
+                            <span>${bairroData.bairro} <span class="text-sm font-normal text-gray-500">(${clientCount} cliente${clientCount > 1 ? 's' : ''})</span></span>
+                            <i class="fas fa-chevron-down text-gray-500"></i>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="table-responsive p-2">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="w-12 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cor</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agendamento Troca</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Observações</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        ${filteredClientes.map(cliente => {
+                                            const savedColor = localStorage.getItem(`color_${cliente.id}`) || '#ffffff';
+                                            const savedSwap = localStorage.getItem(`swap_${cliente.id}`) || 'Não Agendado';
+                                            const savedObs = localStorage.getItem(`obs_${cliente.id}`) || '';
+                                            return `
+                                                <tr id="row_${cliente.id}" style="background-color: ${savedColor};">
+                                                    <td class="px-4 py-4 whitespace-nowrap">
+                                                        <input type="color" value="${savedColor}" class="w-10 h-10 border-none cursor-pointer" onchange="changeColor('${cliente.id}', this.value)">
+                                                    </td>
+                                                    <td class="px-4 py-4 whitespace-nowrap">
+                                                        <div class="text-sm font-medium text-gray-900">${cliente.nome}</div>
+                                                        <div class="text-sm text-gray-500">Login: <span class="font-mono">${cliente.login || 'N/A'}</span></div>
+                                                        <div class="text-sm text-gray-500">MAC: <span class="font-mono">${cliente.mac || 'N/A'}</span></div>
+                                                    </td>
+                                                    <td class="px-4 py-4 whitespace-nowrap">
+                                                        <select class="p-2 border border-gray-300 rounded-md" onchange="saveSwapStatus('${cliente.id}', this.value)">
+                                                            <option value="Não Agendado" ${savedSwap === 'Não Agendado' ? 'selected' : ''}>Não Agendado</option>
+                                                            <option value="Agendado" ${savedSwap === 'Agendado' ? 'selected' : ''}>Agendado</option>
+                                                        </select>
+                                                    </td>
+                                                    <td class="px-4 py-4">
+                                                        <textarea class="w-full p-2 border border-gray-300 rounded-md" rows="2" oninput="saveObservation('${cliente.id}', this.value)">${savedObs}</textarea>
+                                                    </td>
+                                                    <td class="px-4 py-4 whitespace-nowrap">
+                                                        <span class="text-xs font-medium px-2 py-0.5 rounded-full ${getStatusBadgeClass(cliente.status)}">${cliente.status}</span>
+                                                    </td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    clientList.appendChild(accordionItem);
+                }
             });
+            
+            noResultsDiv.classList.toggle('hidden', resultsFound);
         }
 
-        // --- App Initialization ---
+        // Functions to handle dynamic data
+        function changeColor(clientId, color) {
+            document.getElementById(`row_${clientId}`).style.backgroundColor = color;
+            localStorage.setItem(`color_${clientId}`, color);
+        }
+
+        function saveSwapStatus(clientId, status) {
+            localStorage.setItem(`swap_${clientId}`, status);
+        }
+
+        function saveObservation(clientId, text) {
+            localStorage.setItem(`obs_${clientId}`, text);
+        }
+
+        // Function to populate the bairro filter dropdown
         function populateFilter() {
-            uniqueBairros.forEach(bairroName => {
+            bairrosData.forEach(bairroData => {
                 const option = document.createElement('option');
-                option.value = bairroName;
-                option.textContent = bairroName;
+                option.value = bairroData.bairro;
+                option.textContent = bairroData.bairro;
                 bairroFilter.appendChild(option);
             });
         }
-
-        function setDynamicDate() {
-            const dateElement = document.getElementById('current-date');
-            const today = new Date();
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            dateElement.textContent = `Data de Emissão: ${today.toLocaleDateString('pt-BR', options)}`;
-        }
         
-        searchInput.addEventListener('input', () => renderClients());
-        bairroFilter.addEventListener('change', () => renderClients());
-        exportExcelBtn.addEventListener('click', exportToCSV);
-        exportPdfBtn.addEventListener('click', exportToPDF);
+        // Accordion functionality
+        clientList.addEventListener('click', function(event) {
+            const button = event.target.closest('.accordion-button');
+            if (button) {
+                button.classList.toggle('open');
+                const content = button.nextElementSibling;
+                if (content.style.maxHeight) {
+                    content.style.maxHeight = null;
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                }
+            }
+        });
 
-        // --- Main Execution ---
-        async function main() {
-            if (!db) return;
-            setDynamicDate();
-            prepareAllData(rawBairrosData);
+        // Event Listeners for filters
+        searchInput.addEventListener('input', () => {
+            renderClients(searchInput.value, bairroFilter.value);
+        });
+
+        bairroFilter.addEventListener('change', () => {
+            renderClients(searchInput.value, bairroFilter.value);
+        });
+
+        // Initial render
+        document.addEventListener('DOMContentLoaded', () => {
             populateFilter();
             renderDashboard();
             renderClients();
-            
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    userId = user.uid;
-                    userIdDisplay.textContent = userId;
-                    setupFirestoreListener();
-                } else {
-                    loadingOverlay.style.display = 'none';
-                }
-            });
-
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Authentication failed:", error);
-                loadingOverlay.innerHTML = '<p class="text-red-500">Falha na autenticação. A colaboração não funcionará.</p>';
-            }
-        }
-
-        main();
+        });
 
     </script>
 </body>
